@@ -15,7 +15,7 @@ type SyncService struct {
 	relayAccount    *rsdk.Account
 	relaySdk        *rsdk.PolySdk
 	relaySyncHeight uint32
-	relayPubKeys	[][]byte
+	relayPubKeys    [][]byte
 
 	nwh              *wallet.WalletHelper
 	neoSdk           *rpc.RpcClient
@@ -49,10 +49,10 @@ func NewSyncService(acct *rsdk.Account, relaySdk *rsdk.PolySdk, neoAccount *wall
 
 // Run ...
 func (this *SyncService) Run() {
-	//go this.RelayToNeo()
-	//go this.RelayToNeoRetry()
+	go this.RelayToNeo()
+	go this.RelayToNeoRetry()
 	go this.NeoToRelay()
-	//go this.NeoToRelayCheckAndRetry()
+	go this.NeoToRelayCheckAndRetry()
 }
 
 func checkIfExist(dir string) bool {

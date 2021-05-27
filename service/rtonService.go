@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/polynetwork/neo-relayer/log"
+	"github.com/polynetwork/neo3-relayer/log"
 	vconfig "github.com/polynetwork/poly/consensus/vbft/config"
 	autils "github.com/polynetwork/poly/native/service/utils"
 	"time"

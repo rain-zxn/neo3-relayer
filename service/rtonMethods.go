@@ -14,12 +14,12 @@ import (
 	"github.com/joeqian10/neo3-gogogo/rpc/models"
 	"github.com/joeqian10/neo3-gogogo/sc"
 	"github.com/joeqian10/neo3-gogogo/tx"
-	"github.com/polynetwork/neo3-relayer/db"
-	"github.com/polynetwork/neo3-relayer/log"
 	"github.com/ontio/ontology-crypto/ec"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology-crypto/sm2"
+	"github.com/polynetwork/neo3-relayer/db"
+	"github.com/polynetwork/neo3-relayer/log"
 	"github.com/polynetwork/poly/common"
 	"github.com/polynetwork/poly/core/types"
 	"strconv"
@@ -32,7 +32,7 @@ import (
 const (
 	VERIFY_AND_EXECUTE_TX = "verifyAndExecuteTx"
 	CHANGE_BOOK_KEEPER    = "changeBookKeeper"
-	GET_BOOK_KEEPERS       = "getBookKeepers"
+	GET_BOOK_KEEPERS      = "getBookKeepers"
 )
 
 // GetCurrentNeoChainSyncHeight
@@ -358,7 +358,7 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	}
 
 	rawTxString := crypto.Base64Encode(trx.ToByteArray())
-	log.Infof(rawTxString)
+	log.Infof("rawTxString: " + rawTxString)
 
 	// send the raw transaction
 	response := this.neoSdk.SendRawTransaction(rawTxString)
@@ -501,7 +501,7 @@ func (this *SyncService) retrySyncProofToNeo(v []byte, lastSynced uint32) error 
 		return fmt.Errorf("[syncProofToNeo] WalletHelper.SignTransaction error: %s", err)
 	}
 	rawTxString := crypto.Base64Encode(trx.ToByteArray())
-	log.Infof(rawTxString)
+	log.Infof("rawTxString: " + rawTxString)
 
 	// send the raw transaction
 	response := this.neoSdk.SendRawTransaction(rawTxString)

@@ -125,7 +125,7 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 									}
 								}
 							}
-							key := states[3].Value.(string) // base64 string for storeKey: 0102 + toChainId + toRequestId, like 01020501
+							key := states[3].Value.(string)       // base64 string for storeKey: 0102 + toChainId + toRequestId, like 01020501
 							temp, err := crypto.Base64Decode(key) // base64 encoded
 							if err != nil {
 								return fmt.Errorf("[neoToRelay] base64decode key error: %s", err)

@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/joeqian10/neo3-relayer/config"
+	"github.com/polynetwork/neo3-relayer/config"
 	"github.com/urfave/cli"
 )
 

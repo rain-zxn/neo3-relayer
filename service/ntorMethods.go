@@ -108,11 +108,11 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	crossChainMsg := buff.Bytes()
 	log.Infof("stateroot: %s", helper.BytesToHex(crossChainMsg))
 
-	msg := this.GetStateRootMsg(stateRoot)
-	log.Infof("message: %s", helper.BytesToHex(msg))
-
-	log.Infof("invocation: %s", stateRoot.Witnesses[0].Invocation)
-	log.Infof("verification: %s", stateRoot.Witnesses[0].Verification)
+	//msg := this.GetStateRootMsg(stateRoot)
+	//log.Infof("message: %s", helper.BytesToHex(msg))
+	//
+	//log.Infof("invocation: %s", stateRoot.Witnesses[0].Invocation)
+	//log.Infof("verification: %s", stateRoot.Witnesses[0].Verification)
 
 	// get proof
 	res3 := this.neoSdk.GetProof(stateRoot.RootHash, this.config.NeoCCMC, crypto.Base64Encode(helper.HexToBytes(key)))
@@ -151,7 +151,6 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	log.Infof("[syncProofToRelay] polyTxHash is: %s", txHash.ToHexString())
 	return nil
 }
-
 
 func (this *SyncService) retrySyncProofToRelay(v []byte) error {
 	retry := new(db.Retry)
@@ -226,7 +225,6 @@ func (this *SyncService) GetStateRootMsg(sr mpt.StateRoot) []byte {
 	}
 	return buf.Bytes()
 }
-
 
 func (this *SyncService) checkDoneTx() error {
 	checkMap, err := this.db.GetAllCheck()
