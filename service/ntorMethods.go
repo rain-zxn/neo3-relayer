@@ -97,12 +97,22 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	}
 
 	// get state root
-	res2 := this.neoSdk.GetStateRoot(height)
-	if res2.HasError() {
-		this.db.PutRetry(sink.Bytes())
-		return fmt.Errorf("[syncProofToRelay] neoSdk.GetStateRootByIndex error: %s", res2.Error.Message)
+	srGot := false
+	stateRoot := mpt.StateRoot{}
+	height2 := height
+	for !srGot {
+		res2 := this.neoSdk.GetStateRoot(height2)
+		if res2.HasError() {
+			this.db.PutRetry(sink.Bytes())
+			return fmt.Errorf("[syncProofToRelay] neoSdk.GetStateRootByIndex error: %s", res2.Error.Message)
+		}
+		stateRoot = res2.Result
+		if len(stateRoot.Witnesses) == 0 {
+			height2++
+		} else {
+			srGot = true
+		}
 	}
-	stateRoot := res2.Result
 	buff := io.NewBufBinaryWriter()
 	stateRoot.Serialize(buff.BinaryWriter)
 	crossChainMsg := buff.Bytes()
