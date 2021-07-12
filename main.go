@@ -27,7 +27,7 @@ func setupApp() *cli.App {
 	app := cli.NewApp()
 	app.Usage = "NEO Relayer"
 	app.Action = startSync
-	app.Copyright = "Copyright in 2020 The NEO Project"
+	app.Copyright = "Copyright in 2021 The NEO Project"
 	app.Flags = []cli.Flag{
 		cmd.LogLevelFlag,
 		cmd.ConfigPathFlag,

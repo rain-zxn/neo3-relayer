@@ -98,7 +98,6 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 					// this loop confirm tx is a cross chain tx
 					for _, notification := range execution.Notifications {
 						u, _ := helper.UInt160FromString(notification.Contract)
-
 						if "0x"+u.String() == this.config.NeoCCMC && notification.EventName == "CrossChainLockEvent" {
 							if notification.State.Type != "Array" {
 								return fmt.Errorf("[neoToRelay] notification.State.Type error: Type is not Array")
@@ -142,6 +141,7 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 							} else {
 								passed = currentRelayChainSyncHeight
 							}
+							log.Infof("now process neo tx: " + tx.Hash)
 							err = this.syncProofToRelay(key, passed)
 							if err != nil {
 								log.Errorf("--------------------------------------------------")

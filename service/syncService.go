@@ -17,10 +17,11 @@ type SyncService struct {
 	relaySyncHeight uint32
 	relayPubKeys    [][]byte
 
-	nwh              *wallet.WalletHelper
-	neoSdk           *rpc.RpcClient
-	neoSyncHeight    uint32
-	neoNextConsensus string
+	nwh                *wallet.WalletHelper
+	neoSdk             *rpc.RpcClient
+	neoSyncHeight      uint32
+	neoNextConsensus   string
+	neoStateRootHeight uint32
 
 	db     *db.BoltDB
 	config *config.Config
@@ -37,12 +38,13 @@ func NewSyncService(acct *rsdk.Account, relaySdk *rsdk.PolySdk, neoAccount *wall
 		os.Exit(1)
 	}
 	syncSvr := &SyncService{
-		relayAccount: acct,
-		relaySdk:     relaySdk,
-		neoSdk:       client,
-		nwh:          neoAccount,
-		db:           boltDB,
-		config:       config.DefConfig,
+		relayAccount:       acct,
+		relaySdk:           relaySdk,
+		neoSdk:             client,
+		neoStateRootHeight: 0,
+		nwh:                neoAccount,
+		db:                 boltDB,
+		config:             config.DefConfig,
 	}
 	return syncSvr
 }

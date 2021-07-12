@@ -98,8 +98,13 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 
 	// get state root
 	srGot := false
+	var height2 uint32
 	stateRoot := mpt.StateRoot{}
-	height2 := height
+	if height >= this.neoStateRootHeight {
+		height2 = height
+	} else {
+		height2 = this.neoStateRootHeight
+	}
 	for !srGot {
 		res2 := this.neoSdk.GetStateRoot(height2)
 		if res2.HasError() {
@@ -107,10 +112,11 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 			return fmt.Errorf("[syncProofToRelay] neoSdk.GetStateRootByIndex error: %s", res2.Error.Message)
 		}
 		stateRoot = res2.Result
-		if len(stateRoot.Witnesses) == 0 {
+		if len(stateRoot.Witnesses) == 0 { // no witness
 			height2++
 		} else {
 			srGot = true
+			this.neoStateRootHeight = height2 // next tx can start from this height to get state root
 		}
 	}
 	buff := io.NewBufBinaryWriter()
@@ -134,6 +140,12 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 		return fmt.Errorf("[syncProofToRelay] decode proof error: %s", err)
 	}
 	log.Info("proof: %s", helper.BytesToHex(proof))
+
+	// following for testing only
+	//id, k, proofs, err := mpt.ResolveProof(proof)
+	//root, _ := helper.UInt256FromString(stateRoot.RootHash)
+	//value, err := mpt.VerifyProof(root, id, k, proofs)
+	//log.Infof("value: %s", helper.BytesToHex(value))
 
 	//sending SyncProof transaction to Relay Chain
 	txHash, err := this.relaySdk.Native.Ccm.ImportOuterTransfer(this.config.NeoChainID, nil, height, proof, this.relayAccount.Address[:], crossChainMsg, this.relayAccount)
@@ -170,11 +182,22 @@ func (this *SyncService) retrySyncProofToRelay(v []byte) error {
 	}
 
 	// get state root
-	res2 := this.neoSdk.GetStateRoot(retry.Height)
-	if res2.HasError() {
-		return fmt.Errorf("[retrySyncProofToRelay] neoSdk.GetStateRootByIndex error: %s", res2.Error.Message)
+	srGot := false
+	stateRoot := mpt.StateRoot{}
+	height2 := retry.Height
+	for !srGot {
+		res2 := this.neoSdk.GetStateRoot(height2)
+		if res2.HasError() {
+			// try once, log error
+			return fmt.Errorf("[retrySyncProofToRelay] neoSdk.GetStateRootByIndex error: %s", res2.Error.Message)
+		}
+		stateRoot = res2.Result
+		if len(stateRoot.Witnesses) == 0 {
+			height2++
+		} else {
+			srGot = true
+		}
 	}
-	stateRoot := res2.Result
 	buff := io.NewBufBinaryWriter()
 	stateRoot.Serialize(buff.BinaryWriter)
 	crossChainMsg := buff.Bytes()
@@ -216,7 +239,7 @@ func (this *SyncService) retrySyncProofToRelay(v []byte) error {
 }
 
 func (this *SyncService) waitForRelayBlock() {
-	_, err := this.relaySdk.WaitForGenerateBlock(30*time.Second, 3)
+	_, err := this.relaySdk.WaitForGenerateBlock(60*time.Second, 3)
 	if err != nil {
 		log.Errorf("[waitForRelayBlock] error: %s", err)
 	}
