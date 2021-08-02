@@ -29,12 +29,27 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 	for i := m; i < n; i++ {
 		log.Infof("[relayToNeo] start parse block %d", i)
 
-		// sync cross chain info
-		events, err := this.relaySdk.GetSmartContractEventByBlock(i)
+		block, err := this.relaySdk.GetBlockByHeight(i)
 		if err != nil {
-			return fmt.Errorf("[relayToNeo] relaySdk.GetSmartContractEventByBlock error:%s", err)
+			return fmt.Errorf("[relayToNeo] GetBlockByHeight error: %s", err)
 		}
-		for _, event := range events {
+		txs := block.Transactions
+		// sync cross chain info
+		//events, err := this.relaySdk.GetSmartContractEventByBlock(i)
+		//if err != nil {
+		//	return fmt.Errorf("[relayToNeo] relaySdk.GetSmartContractEventByBlock error:%s", err)
+		//}
+		for _, tx := range txs {
+			//payer := tx.Payer.ToBase58()
+			//log.Infof(payer)
+			//for _, s := range tx.SignedAddr {
+			//	log.Infof(s.ToBase58())
+			//}
+			txHash := tx.Hash()
+			event, err := this.relaySdk.GetSmartContractEvent(txHash.ToHexString())
+			if err != nil {
+				return fmt.Errorf("[relayToNeo] relaySdk.GetSmartContractEvent error:%s", err)
+			}
 			for _, notify := range event.Notify {
 				states, ok := notify.States.([]interface{})
 				if !ok {
@@ -97,12 +112,16 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 	return nil
 }
 
-func (this *SyncService) RelayToNeoRetry() {
+func (this *SyncService) RelayToNeoCheckAndRetry() {
 	for {
-		err := this.neoRetryTx()
+		time.Sleep(time.Duration(this.config.ScanInterval) * time.Second) // 15 seconds a block
+		err := this.neoCheckTx()
 		if err != nil {
-			log.Errorf("[RelayToNeoRetry] this.neoRetryTx error:%s", err)
+			log.Errorf("[RelayToNeoCheckAndRetry] this.neoCheckTx error: %s", err)
 		}
-		time.Sleep(time.Duration(this.config.ScanInterval) * time.Second)
+		err = this.neoRetryTx()
+		if err != nil {
+			log.Errorf("[RelayToNeoCheckAndRetry] this.neoRetryTx error: %s", err)
+		}
 	}
 }

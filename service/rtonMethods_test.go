@@ -166,8 +166,8 @@ func TestConvertPublicKey(t *testing.T)  {
 }
 
 func Test666(t *testing.T)  {
-	c := rpc.NewClient("http://seed1t.neo.org:21332")
-	r1 := c.GetRawTransaction("0x98fc9f6231fc53637ed01d777723e30190ec69ab489df048605a86ae06a017c7")
+	c := rpc.NewClient("http://seed1t.neo.org:20332")
+	r1 := c.GetRawTransaction("0x58f6b0fe73e1b6b68bd604ab6f2d06b816a6cfb96540db8b3b87b0987df99e1d")
 	blockHash := r1.Result.BlockHash
 	r2 := c.GetBlockHeader(blockHash)
 	index := r2.Result.Index

@@ -17,23 +17,21 @@ type Config struct {
 	RelayJsonRpcUrl   string
 	WalletFile        string
 	RelayAccountsPath string
-
-	NeoMagic         uint32
-	NeoWalletFile    string
-	NeoJsonRpcUrl    string
-	NeoChainID       uint64
-	NeoCCMC          string // little endian string
-	SpecificContract string // the specific contract which is monitored
-	//NeoSysFee        float64
-	//NeoNetFee        float64
-
-	ScanInterval     uint64
-	RetryInterval    uint64
-	DBPath           string
-	ChangeBookkeeper bool
-
-	PolyStartHeight uint32
-	NeoStartHeight  uint32
+	NeoMagic          uint32
+	NeoWalletFile     string
+	NeoJsonRpcUrl     string
+	NeoChainID        uint64
+	NeoCCMC           string // big endian string, like 0x1234567812345678123456781234567812345678
+	NtorContract      string
+	RtonContract      string
+	ScanInterval      uint64
+	RetryInterval     uint64
+	DBPath            string
+	ChangeBookkeeper  bool
+	Neo2RpcUrl        string
+	Neo2Wrapper       string
+	PolyStartHeight   uint32
+	NeoStartHeight    uint32
 }
 
 //Default config instance

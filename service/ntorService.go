@@ -109,11 +109,11 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 								return fmt.Errorf("[neoToRelay] notification.State.Value error: Wrong length of states")
 							}
 							// when empty, relay everything
-							if this.config.SpecificContract != "" {
+							if this.config.NtorContract != "" {
 								// this loop check it is for this specific contract
 								for index, ntf := range notifications {
 									v, _ := helper.UInt160FromString(ntf.Contract)
-									if "0x"+v.String() != this.config.SpecificContract {
+									if "0x"+v.String() != this.config.NtorContract {
 										if index < len(notifications)-1 {
 											continue
 										}

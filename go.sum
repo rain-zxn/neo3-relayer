@@ -320,8 +320,10 @@ github.com/jmhodges/levigo v1.0.0 h1:q5EC36kV79HWeTBWsod3mG11EgStG3qArTKcvlksN1U
 github.com/jmhodges/levigo v1.0.0/go.mod h1:Q6Qx+uH3RAqyK4rFQroq9RL7mdkABMcfhEI+nNuzMJQ=
 github.com/joeqian10/neo-gogogo v0.0.0-20200611102831-c17de5e1f0f8 h1:C+PIS6p7oQ4DwT+1IJkIvS+BMLn9TodglcqcGzhE+fQ=
 github.com/joeqian10/neo-gogogo v0.0.0-20200611102831-c17de5e1f0f8/go.mod h1:1fVDp4U1ROZQBRIooecbGNHHJpfs3bG9528sqlZ096g=
-github.com/joeqian10/neo3-gogogo v0.3.8 h1:oOAcdUeIFjE4g+93Fsgf/fjYkZdOPt3PNefE223Mi/A=
-github.com/joeqian10/neo3-gogogo v0.3.8/go.mod h1:k0wb1hcBjjspDpyHtEXIpDUEXAw5SfX7coi5AkNtxoU=
+github.com/joeqian10/neo-gogogo v1.3.0 h1:wHN++OOZONic0tkIk8+Qk6EvHJh+YHcIHVhQLSxjzao=
+github.com/joeqian10/neo-gogogo v1.3.0/go.mod h1:1fVDp4U1ROZQBRIooecbGNHHJpfs3bG9528sqlZ096g=
+github.com/joeqian10/neo3-gogogo v1.0.0 h1:KXNJ3ya2H6JU445hMEs04jd0g74ia4v4uAqEoF4bfcc=
+github.com/joeqian10/neo3-gogogo v1.0.0/go.mod h1:k0wb1hcBjjspDpyHtEXIpDUEXAw5SfX7coi5AkNtxoU=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
 github.com/jrick/logrotate v1.0.0/go.mod h1:LNinyqDIJnpAur+b8yyulnQw/wDuN1+BYKlTRt3OuAQ=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=

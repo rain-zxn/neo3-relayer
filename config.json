@@ -7,11 +7,14 @@
   "NeoJsonRpcUrl": "http://seed1t4.neo.org:20332",
   "NeoChainID": 88,
   "NeoCCMC": "0x618d44dc3af16c6120dbf65402024f40a04f772a",
-  "SpecificContract": "",
-  "ScanInterval": 2,
-  "RetryInterval": 2,
+  "NtorContract": "",
+  "RtonContract": "",
+  "ScanInterval": 15,
+  "RetryInterval": 5,
   "DBPath": "boltdb",
   "ChangeBookkeeper": true,
-  "PolyStartHeight": 0,
-  "NeoStartHeight": 0
+  "Neo2RpcUrl": "http://seed1.ngd.network:20332",
+  "Neo2Wrapper": "0x7997ac991b66ca3810602639a2f2c1bd985e8b5a",
+  "PolyStartHeight": 12665830,
+  "NeoStartHeight": 48950
 }

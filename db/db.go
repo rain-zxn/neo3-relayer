@@ -1,10 +1,11 @@
 package db
+
 // db not used
 import (
 	"encoding/hex"
 	"fmt"
 	"github.com/boltdb/bolt"
-	"github.com/joeqian10/neo3-gogogo/helper"
+	//"github.com/joeqian10/neo3-gogogo/helper"
 	"github.com/polynetwork/neo3-relayer/log"
 	"path"
 	"strings"
@@ -14,19 +15,20 @@ import (
 const MAX_NUM = 1000
 
 var (
-	BKTCheck = []byte("Check")
-	BKTRetry = []byte("Retry")
+	BKTCheck                = []byte("Check")
+	BKTRetry                = []byte("Retry")
 	BKTPolyPublicKeysSorted = []byte("PPKS")
 
+	BKTNeoCheck = []byte("NeoCheck")
 	BKTNeoRetry = []byte("NeoRetry")
 
-	BKTHeader = []byte("Header") // bucket header
+	BKTHeader     = []byte("Header")     // bucket header
 	BKTHeightList = []byte("HeightList") // bucket header height list
 )
 
 type BoltDB struct {
-	rwLock *sync.RWMutex
-	db *bolt.DB
+	rwLock   *sync.RWMutex
+	db       *bolt.DB
 	filePath string
 }
 
@@ -72,6 +74,16 @@ func NewBoltDB(filePath string) (*BoltDB, error) {
 	}); err != nil {
 		return nil, err
 	}
+	// neo check
+	if err = db.Update(func(btx *bolt.Tx) error {
+		_, err := btx.CreateBucketIfNotExists(BKTNeoCheck)
+		if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 	// neo retry
 	if err = db.Update(func(btx *bolt.Tx) error {
 		_, err := btx.CreateBucketIfNotExists(BKTNeoRetry)
@@ -105,7 +117,6 @@ func NewBoltDB(filePath string) (*BoltDB, error) {
 
 	return w, nil
 }
-
 
 //func (w *BoltDB) PutPolyHeight(height uint32) error {
 //	w.rwLock.Lock()
@@ -143,7 +154,71 @@ func NewBoltDB(filePath string) (*BoltDB, error) {
 //	return height
 //}
 
+func (w *BoltDB) PutNeoCheck(neoTxHash string, v []byte) error {
+	w.rwLock.Lock()
+	defer w.rwLock.Unlock()
 
+	k, err := hex.DecodeString(neoTxHash)
+	if err != nil {
+		return err
+	}
+	return w.db.Update(func(btx *bolt.Tx) error {
+		bucket := btx.Bucket(BKTNeoCheck)
+		err := bucket.Put(k, v)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (w *BoltDB) DeleteNeoCheck(neoTxHash string) error {
+	w.rwLock.Lock()
+	defer w.rwLock.Unlock()
+
+	k, err := hex.DecodeString(neoTxHash)
+	if err != nil {
+		return err
+	}
+	return w.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BKTNeoCheck)
+		err := bucket.Delete(k)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (w *BoltDB) GetNeoAllCheck() (map[string][]byte, error) {
+	w.rwLock.Lock()
+	defer w.rwLock.Unlock()
+
+	checkMap := make(map[string][]byte)
+	err := w.db.Update(func(tx *bolt.Tx) error {
+		bw := tx.Bucket(BKTNeoCheck)
+		err := bw.ForEach(func(k, v []byte) error {
+			_k := make([]byte, len(k))
+			_v := make([]byte, len(v))
+			copy(_k, k)
+			copy(_v, v)
+			checkMap[hex.EncodeToString(_k)] = _v
+			if len(checkMap) >= MAX_NUM {
+				return fmt.Errorf("max num")
+			}
+			return nil
+		})
+		if err != nil {
+			log.Errorf("GetAllCheck err: %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return checkMap, nil
+}
 
 func (w *BoltDB) PutNeoRetry(k []byte) error {
 	w.rwLock.Lock()
@@ -200,8 +275,6 @@ func (w *BoltDB) GetAllNeoRetry() ([][]byte, error) {
 	}
 	return retryList, nil
 }
-
-
 
 func (w *BoltDB) PutCheck(txHash string, v []byte) error {
 	w.rwLock.Lock()
@@ -362,166 +435,166 @@ func (w *BoltDB) GetPPKS() ([]byte, error) {
 	return v, nil
 }
 
-func (w *BoltDB) PutHeader(height uint32, rawHeader []byte) error {
-	w.rwLock.Lock()
-	defer w.rwLock.Unlock()
-
-	key := helper.UInt32ToBytes(height)
-	// check if exists
-	var v []byte = nil
-	err := w.db.View(func(tx *bolt.Tx) error {
-		_v := tx.Bucket(BKTHeader).Get(key)
-		v = make([]byte, len(_v))
-		copy(v, _v)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	if v == nil {
-		return nil
-	}
-
-	return w.db.Update(func(btx *bolt.Tx) error {
-		bucket := btx.Bucket(BKTHeader)
-		err := bucket.Put(key, rawHeader)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
-func (w *BoltDB) GetHeader(height uint32) ([]byte, error) {
-	w.rwLock.Lock()
-	defer w.rwLock.Unlock()
-
-	key := helper.UInt32ToBytes(height)
-	var v []byte = nil
-	err := w.db.View(func(tx *bolt.Tx) error {
-		_v := tx.Bucket(BKTHeader).Get(key)
-		v = make([]byte, len(_v))
-		copy(v, _v)
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-func (w *BoltDB) GetHeadersByRange(low uint32, high uint32) (map[uint32][]byte, error) {
-	if low > high {
-		return nil, fmt.Errorf("invalid parameters")
-	}
-
-	heightList, err := w.GetHeightList()
-	if err != nil {
-		return nil,err
-	}
-	if heightList == nil {
-		return nil, nil
-	}
-
-	var i = 0
-	var j = len(heightList)-1
-	for heightList[i] <= low { // exclude low
-		i++
-	}
-	for heightList[j] > high { // include high
-		j--
-	}
-	if i > j {
-		return nil, nil
-	}
-
-	w.rwLock.Lock()
-	defer w.rwLock.Unlock()
-
-	var headersMap = make(map[uint32][]byte)
-	for k := i; k <= j; k++ {
-		key := helper.UInt32ToBytes(heightList[k])
-		var v []byte = nil
-		err := w.db.View(func(tx *bolt.Tx) error {
-			_v := tx.Bucket(BKTHeader).Get(key)
-			v = make([]byte, len(_v))
-			copy(v, _v)
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
-		headersMap[heightList[k]] = v
-	}
-
-	return headersMap, nil
-}
-
-func (w *BoltDB) PutHeightList(heights []uint32) error {
-	w.rwLock.Lock()
-	defer w.rwLock.Unlock()
-	
-	var v []byte
-	for _, height := range heights {
-		v = append(v, helper.UInt32ToBytes(height)...)
-	}
-
-	return w.db.Update(func(btx *bolt.Tx) error {
-		bucket := btx.Bucket(BKTHeightList)
-		err := bucket.Put(BKTHeightList, v)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
-func (w *BoltDB) GetHeightList() ([]uint32, error) {
-	w.rwLock.Lock()
-	defer w.rwLock.Unlock()
-	
-	var v []byte
-	err := w.db.View(func(tx *bolt.Tx) error {
-		_v := tx.Bucket(BKTHeightList).Get(BKTHeightList)
-		v = make([]byte, len(_v))
-		copy(v, _v)
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	
-	results := make([]uint32, len(v)/4)
-	for i := 0; i < len(results); i++ {
-		results[i] = helper.BytesToUInt32(v[4*i:4*i+4])
-	}
-	return results, nil
-}
-
-func (w *BoltDB) PutValueInHeightList(height uint32) error {
-	heightList, err := w.GetHeightList()
-	if err != nil {
-		return err
-	}
-	
-	newHeightList := make([]uint32, len(heightList)+1)
-	// find the position to insert
-	i := 0
-	for height < heightList[i] {
-		i++
-	}
-	copy(newHeightList[:i], heightList[:i])
-	newHeightList[i] = height
-	copy(newHeightList[i+1:], heightList[i:])
-	
-	err = w.PutHeightList(newHeightList)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//func (w *BoltDB) PutHeader(height uint32, rawHeader []byte) error {
+//	w.rwLock.Lock()
+//	defer w.rwLock.Unlock()
+//
+//	key := helper.UInt32ToBytes(height)
+//	// check if exists
+//	var v []byte = nil
+//	err := w.db.View(func(tx *bolt.Tx) error {
+//		_v := tx.Bucket(BKTHeader).Get(key)
+//		v = make([]byte, len(_v))
+//		copy(v, _v)
+//		return nil
+//	})
+//	if err != nil {
+//		return err
+//	}
+//	if v == nil {
+//		return nil
+//	}
+//
+//	return w.db.Update(func(btx *bolt.Tx) error {
+//		bucket := btx.Bucket(BKTHeader)
+//		err := bucket.Put(key, rawHeader)
+//		if err != nil {
+//			return err
+//		}
+//
+//		return nil
+//	})
+//}
+//
+//func (w *BoltDB) GetHeader(height uint32) ([]byte, error) {
+//	w.rwLock.Lock()
+//	defer w.rwLock.Unlock()
+//
+//	key := helper.UInt32ToBytes(height)
+//	var v []byte = nil
+//	err := w.db.View(func(tx *bolt.Tx) error {
+//		_v := tx.Bucket(BKTHeader).Get(key)
+//		v = make([]byte, len(_v))
+//		copy(v, _v)
+//		return nil
+//	})
+//	if err != nil {
+//		return nil, err
+//	}
+//	return v, nil
+//}
+//
+//func (w *BoltDB) GetHeadersByRange(low uint32, high uint32) (map[uint32][]byte, error) {
+//	if low > high {
+//		return nil, fmt.Errorf("invalid parameters")
+//	}
+//
+//	heightList, err := w.GetHeightList()
+//	if err != nil {
+//		return nil,err
+//	}
+//	if heightList == nil {
+//		return nil, nil
+//	}
+//
+//	var i = 0
+//	var j = len(heightList)-1
+//	for heightList[i] <= low { // exclude low
+//		i++
+//	}
+//	for heightList[j] > high { // include high
+//		j--
+//	}
+//	if i > j {
+//		return nil, nil
+//	}
+//
+//	w.rwLock.Lock()
+//	defer w.rwLock.Unlock()
+//
+//	var headersMap = make(map[uint32][]byte)
+//	for k := i; k <= j; k++ {
+//		key := helper.UInt32ToBytes(heightList[k])
+//		var v []byte = nil
+//		err := w.db.View(func(tx *bolt.Tx) error {
+//			_v := tx.Bucket(BKTHeader).Get(key)
+//			v = make([]byte, len(_v))
+//			copy(v, _v)
+//			return nil
+//		})
+//		if err != nil {
+//			return nil, err
+//		}
+//		headersMap[heightList[k]] = v
+//	}
+//
+//	return headersMap, nil
+//}
+//
+//func (w *BoltDB) PutHeightList(heights []uint32) error {
+//	w.rwLock.Lock()
+//	defer w.rwLock.Unlock()
+//
+//	var v []byte
+//	for _, height := range heights {
+//		v = append(v, helper.UInt32ToBytes(height)...)
+//	}
+//
+//	return w.db.Update(func(btx *bolt.Tx) error {
+//		bucket := btx.Bucket(BKTHeightList)
+//		err := bucket.Put(BKTHeightList, v)
+//		if err != nil {
+//			return err
+//		}
+//
+//		return nil
+//	})
+//}
+//
+//func (w *BoltDB) GetHeightList() ([]uint32, error) {
+//	w.rwLock.Lock()
+//	defer w.rwLock.Unlock()
+//
+//	var v []byte
+//	err := w.db.View(func(tx *bolt.Tx) error {
+//		_v := tx.Bucket(BKTHeightList).Get(BKTHeightList)
+//		v = make([]byte, len(_v))
+//		copy(v, _v)
+//		return nil
+//	})
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	results := make([]uint32, len(v)/4)
+//	for i := 0; i < len(results); i++ {
+//		results[i] = helper.BytesToUInt32(v[4*i:4*i+4])
+//	}
+//	return results, nil
+//}
+//
+//func (w *BoltDB) PutValueInHeightList(height uint32) error {
+//	heightList, err := w.GetHeightList()
+//	if err != nil {
+//		return err
+//	}
+//
+//	newHeightList := make([]uint32, len(heightList)+1)
+//	// find the position to insert
+//	i := 0
+//	for height < heightList[i] {
+//		i++
+//	}
+//	copy(newHeightList[:i], heightList[:i])
+//	newHeightList[i] = height
+//	copy(newHeightList[i+1:], heightList[i:])
+//
+//	err = w.PutHeightList(newHeightList)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
 func (w *BoltDB) Close() {
 	w.rwLock.Lock()

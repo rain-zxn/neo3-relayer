@@ -122,7 +122,7 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	buff := io.NewBufBinaryWriter()
 	stateRoot.Serialize(buff.BinaryWriter)
 	crossChainMsg := buff.Bytes()
-	log.Infof("stateroot: %s", helper.BytesToHex(crossChainMsg))
+	//log.Infof("stateroot: %s", helper.BytesToHex(crossChainMsg))
 
 	//msg := this.GetStateRootMsg(stateRoot)
 	//log.Infof("message: %s", helper.BytesToHex(msg))
@@ -139,7 +139,7 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	if err != nil {
 		return fmt.Errorf("[syncProofToRelay] decode proof error: %s", err)
 	}
-	log.Info("proof: %s", helper.BytesToHex(proof))
+	//log.Info("proof: %s", helper.BytesToHex(proof))
 
 	// following for testing only
 	//id, k, proofs, err := mpt.ResolveProof(proof)
