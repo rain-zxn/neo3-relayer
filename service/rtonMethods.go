@@ -321,10 +321,21 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	// check if source hash app log includes wrapper contract
 	sourceTxHash := helper.UInt256FromBytes(toMerkleValue.TxParam.TxHash)
 	txId := sourceTxHash.String()
+	txGot := false
 	res := this.neo2Sdk.GetApplicationLog(txId)
-	if res.HasError() {
-		return fmt.Errorf("[syncProofToNeo] this.neo2Sdk.GetApplicationLog error: %s", res.GetErrorInfo())
+	for !txGot {
+		if res.HasError() {
+			if strings.Contains(res.GetErrorInfo(), "Unknown transaction") {
+				time.Sleep(5 * time.Second)
+				res = this.neo2Sdk.GetApplicationLog(txId)
+			} else {
+				return fmt.Errorf("[syncProofToNeo] this.neo2Sdk.GetApplicationLog error: %s", res.GetErrorInfo())
+			}
+		} else {
+			txGot = true
+		}
 	}
+
 	if !this.checkIsNeo2Wrapper(res.Result) {
 		log.Infof("[syncProofToNeo] this tx 0x%s is not from neo2 wrapper", txId)
 		return nil
@@ -744,7 +755,7 @@ func (this *SyncService) checkIsNeo2Wrapper(applicationLog models2.RpcApplicatio
 		notifications := execution.Notifications
 		for _, notification := range notifications {
 			u, _ := helper2.UInt160FromString(notification.Contract)
-			s := "0x"+u.String()
+			s := "0x" + u.String()
 			if s == this.config.Neo2Wrapper {
 				return true
 			}
@@ -782,7 +793,7 @@ func sortSignatures(pubKeys, sigs [][]byte, hash []byte) ([]byte, error) {
 		sortedSigs[index] = sig
 	}
 	sigListBytes := []byte{}
-	log.Infof("sorted sig: ")
+	//log.Infof("sorted sig: ")
 	for _, sortedSig := range sortedSigs {
 		// convert to eth format
 		if len(sortedSig) != 0 {
