@@ -371,7 +371,7 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 			if err != nil {
 				return fmt.Errorf("[syncProofToNeo] this.db.PutNeoRetry error: %s", err)
 			}
-			log.Infof("[syncProofToNeo] put tx into retry db, height %d, key %s, db key %s", txHeight, key, helper.BytesToHex(v))
+			log.Infof("[syncProofToNeo] insufficient GAS, put tx into retry db, height %d, key %s, db key %s", txHeight, key, helper.BytesToHex(v))
 			return nil
 		}
 		return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
