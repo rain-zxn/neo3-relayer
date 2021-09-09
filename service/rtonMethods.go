@@ -81,24 +81,23 @@ func (this *SyncService) changeBookKeeper(block *types.Block) error {
 			bookkeepers = append(bookkeepers, key)
 		}
 
-		// unsorted pub keys----------------------------------------
-		for _, pubKey := range bookkeepers {
-			uncompressed := getRelayUncompressedKey(pubKey) // length 67
-			bs = append(bs, uncompressed...)
-		}
-
-		log.Infof("unsorted pub keys: %s", helper.BytesToHex(bs))
-		//bs = []byte{}
-		// ---------------------------------------------------------
-
-		//// sort the new public keys
-		//bookkeepers = keypair.SortPublicKeys(bookkeepers)
+		//// unsorted pub keys----------------------------------------
 		//for _, pubKey := range bookkeepers {
 		//	uncompressed := getRelayUncompressedKey(pubKey) // length 67
-		//	//log.Infof(helper.BytesToHex(uncompressed)) // sorted
 		//	bs = append(bs, uncompressed...)
 		//}
-		//log.Infof("sorted pub keys: %s", helper.BytesToHex(bs))
+		//log.Infof("unsorted pub keys: %s", helper.BytesToHex(bs))
+		////bs = []byte{}
+		//// ---------------------------------------------------------
+
+		// sort the new public keys
+		bookkeepers = keypair.SortPublicKeys(bookkeepers)
+		for _, pubKey := range bookkeepers {
+			uncompressed := getRelayUncompressedKey(pubKey) // length 67
+			//log.Infof(helper.BytesToHex(uncompressed)) // sorted
+			bs = append(bs, uncompressed...)
+		}
+		log.Infof("sorted pub keys: %s", helper.BytesToHex(bs))
 	}
 	cp2 := sc.ContractParameter{
 		Type:  sc.ByteArray,
@@ -335,10 +334,13 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 			txGot = true
 		}
 	}
-
 	if !this.checkIsNeo2Wrapper(res.Result) {
 		log.Infof("[syncProofToNeo] this tx 0x%s is not from neo2 wrapper", txId)
 		return nil
+	}
+	// limit the method to "unlock"
+	if helper.BytesToHex(toMerkleValue.TxParam.Method) != "756e6c6f636b" { // unlock
+		return fmt.Errorf("[syncProofToNeo] called method is invalid, height %d, key %s", txHeight, key)
 	}
 
 	// build script

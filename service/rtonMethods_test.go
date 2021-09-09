@@ -2,6 +2,8 @@ package service
 
 import (
 	goc "crypto"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/joeqian10/neo3-gogogo/crypto"
@@ -9,6 +11,10 @@ import (
 	"github.com/joeqian10/neo3-gogogo/rpc"
 	"github.com/joeqian10/neo3-gogogo/rpc/models"
 	"github.com/joeqian10/neo3-gogogo/sc"
+	"github.com/ontio/ontology-crypto/keypair"
+	relaySdk "github.com/polynetwork/poly-go-sdk"
+	vconfig "github.com/polynetwork/poly/consensus/vbft/config"
+	"github.com/polynetwork/poly/core/types"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"strconv"
@@ -172,4 +178,28 @@ func Test666(t *testing.T)  {
 	r2 := c.GetBlockHeader(blockHash)
 	index := r2.Result.Index
 	log.Println(index)
+}
+
+func Test777(t *testing.T) {
+	polyRpc := "http://beta1.poly.network:20336"
+	rc := relaySdk.NewPolySdk()
+	rc.NewRpcClient().SetAddress(polyRpc)
+
+	block, err := rc.GetBlockByHeight(60000)
+	assert.Nil(t, err)
+
+	blkInfo := &vconfig.VbftBlockInfo{}
+	_ = json.Unmarshal(block.Header.ConsensusPayload, blkInfo) // already checked before
+	if blkInfo.NewChainConfig != nil {
+		var bookkeepers []keypair.PublicKey
+		for _, peer := range blkInfo.NewChainConfig.Peers {
+			keyBytes, _ := hex.DecodeString(peer.ID)
+			key, _ := keypair.DeserializePublicKey(keyBytes) // compressed
+			bookkeepers = append(bookkeepers, key)
+		}
+
+		nb, err := types.AddressFromBookkeepers(bookkeepers)
+		assert.Nil(t, err)
+		log.Println(nb.ToHexString())
+	}
 }
