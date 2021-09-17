@@ -6,6 +6,7 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/cmars/basen v0.0.0-20150613233007-fe3947df716e // indirect
+	github.com/joeqian10/EasyLogger v1.0.0
 	github.com/joeqian10/neo-gogogo v1.3.0
 	github.com/joeqian10/neo3-gogogo v1.0.0
 	github.com/ontio/ontology-crypto v1.0.9
@@ -14,5 +15,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.4
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
 )

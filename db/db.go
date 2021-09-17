@@ -12,6 +12,8 @@ import (
 	"sync"
 )
 
+var Log = log.Log
+
 const MAX_NUM = 1000
 
 var (
@@ -210,7 +212,7 @@ func (w *BoltDB) GetNeoAllCheck() (map[string][]byte, error) {
 			return nil
 		})
 		if err != nil {
-			log.Errorf("GetAllCheck err: %s", err)
+			Log.Errorf("GetAllCheck err: %s", err)
 		}
 		return nil
 	})
@@ -266,7 +268,7 @@ func (w *BoltDB) GetAllNeoRetry() ([][]byte, error) {
 			return nil
 		})
 		if err != nil {
-			log.Errorf("GetAllRetry err: %s", err)
+			Log.Errorf("GetAllRetry err: %s", err)
 		}
 		return nil
 	})
@@ -361,7 +363,7 @@ func (w *BoltDB) GetAllCheck() (map[string][]byte, error) {
 			return nil
 		})
 		if err != nil {
-			log.Errorf("GetAllCheck err: %s", err)
+			Log.Errorf("GetAllCheck err: %s", err)
 		}
 		return nil
 	})
@@ -388,7 +390,7 @@ func (w *BoltDB) GetAllRetry() ([][]byte, error) {
 			return nil
 		})
 		if err != nil {
-			log.Errorf("GetAllRetry err: %s", err)
+			Log.Errorf("GetAllRetry err: %s", err)
 		}
 		return nil
 	})

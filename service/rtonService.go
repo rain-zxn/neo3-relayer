@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/polynetwork/neo3-relayer/log"
 	vconfig "github.com/polynetwork/poly/consensus/vbft/config"
 	autils "github.com/polynetwork/poly/native/service/utils"
 	"time"
@@ -15,11 +14,11 @@ func (this *SyncService) RelayToNeo() {
 	for {
 		currentRelayChainHeight, err := this.relaySdk.GetCurrentBlockHeight()
 		if err != nil {
-			log.Errorf("[RelayToNeo] GetCurrentBlockHeight error: ", err)
+			Log.Errorf("[RelayToNeo] GetCurrentBlockHeight error: ", err)
 		}
 		err = this.relayToNeo(this.neoSyncHeight, currentRelayChainHeight)
 		if err != nil {
-			log.Errorf("[RelayToNeo] relayToNeo error: ", err)
+			Log.Errorf("[RelayToNeo] relayToNeo error: ", err)
 		}
 		time.Sleep(time.Duration(this.config.ScanInterval) * time.Second)
 	}
@@ -27,7 +26,7 @@ func (this *SyncService) RelayToNeo() {
 
 func (this *SyncService) relayToNeo(m, n uint32) error {
 	for i := m; i < n; i++ {
-		log.Infof("[relayToNeo] start parse block %d", i)
+		Log.Infof("[relayToNeo] start parse block %d", i)
 
 		block, err := this.relaySdk.GetBlockByHeight(i)
 		if err != nil {
@@ -41,9 +40,9 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 		//}
 		for _, tx := range txs {
 			//payer := tx.Payer.ToBase58()
-			//log.Infof(payer)
+			//Log.Infof(payer)
 			//for _, s := range tx.SignedAddr {
-			//	log.Infof(s.ToBase58())
+			//	Log.Infof(s.ToBase58())
 			//}
 			txHash := tx.Hash()
 			event, err := this.relaySdk.GetSmartContractEvent(txHash.ToHexString())
@@ -66,14 +65,14 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 						// get current neo chain sync height, which is the reliable header height
 						currentNeoChainSyncHeight, err := this.GetCurrentNeoChainSyncHeight(this.relaySdk.ChainId)
 						if err != nil {
-							log.Errorf("[relayToNeo] GetCurrentNeoChainSyncHeight error: ", err)
+							Log.Errorf("[relayToNeo] GetCurrentNeoChainSyncHeight error: ", err)
 						}
 						err = this.syncProofToNeo(key, i, uint32(currentNeoChainSyncHeight))
 						if err != nil {
-							log.Errorf("--------------------------------------------------")
-							log.Errorf("[relayToNeo] syncProofToNeo error: %s", err)
-							log.Errorf("polyHeight: %d, key: %s", i, key)
-							log.Errorf("--------------------------------------------------")
+							Log.Errorf("--------------------------------------------------")
+							Log.Errorf("[relayToNeo] syncProofToNeo error: %s", err)
+							Log.Errorf("polyHeight: %d, key: %s", i, key)
+							Log.Errorf("--------------------------------------------------")
 						}
 					}
 				}
@@ -89,7 +88,7 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 			}
 
 			//blockHash := block.Header.Hash()
-			//log.Infof("header hash: " + helper.BytesToHex(blockHash.ToArray()))
+			//Log.Infof("header hash: " + helper.BytesToHex(blockHash.ToArray()))
 
 			blkInfo := &vconfig.VbftBlockInfo{}
 			if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
@@ -99,10 +98,10 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 				//this.waitForNeoBlock() // wait for neo block
 				err = this.changeBookKeeper(block)
 				if err != nil {
-					log.Errorf("--------------------------------------------------")
-					log.Errorf("[relayToNeo] syncHeaderToNeo error: %s", err)
-					log.Errorf("polyHeight: %d", i)
-					log.Errorf("--------------------------------------------------")
+					Log.Errorf("--------------------------------------------------")
+					Log.Errorf("[relayToNeo] syncHeaderToNeo error: %s", err)
+					Log.Errorf("polyHeight: %d", i)
+					Log.Errorf("--------------------------------------------------")
 				}
 			}
 		}
@@ -117,11 +116,11 @@ func (this *SyncService) RelayToNeoCheckAndRetry() {
 		time.Sleep(time.Duration(this.config.ScanInterval) * time.Second) // 15 seconds a block
 		err := this.neoCheckTx()
 		if err != nil {
-			log.Errorf("[RelayToNeoCheckAndRetry] this.neoCheckTx error: %s", err)
+			Log.Errorf("[RelayToNeoCheckAndRetry] this.neoCheckTx error: %s", err)
 		}
 		err = this.neoRetryTx()
 		if err != nil {
-			log.Errorf("[RelayToNeoCheckAndRetry] this.neoRetryTx error: %s", err)
+			Log.Errorf("[RelayToNeoCheckAndRetry] this.neoRetryTx error: %s", err)
 		}
 	}
 }

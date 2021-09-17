@@ -5,7 +5,6 @@ import (
 	"github.com/joeqian10/neo3-gogogo/crypto"
 	"github.com/joeqian10/neo3-gogogo/helper"
 	"github.com/joeqian10/neo3-gogogo/rpc/models"
-	"github.com/polynetwork/neo3-relayer/log"
 	"strconv"
 	"time"
 )
@@ -20,12 +19,12 @@ func (this *SyncService) NeoToRelay() {
 		for j := 0; j < 5; j++ { // 5 times rpc
 			response := this.neoSdk.GetBlock(strconv.Itoa(int(this.relaySyncHeight - 1))) // get the last synced block
 			if response.HasError() {
-				log.Errorf("[NeoToRelay] neoSdk.GetBlockByIndex error: %s", response.Error.Message)
+				Log.Errorf("[NeoToRelay] neoSdk.GetBlockByIndex error: %s", response.Error.Message)
 			}
 			block := response.Result
 			if block.Hash == "" {
 				if j == 4 {
-					log.Errorf("[NeoToRelay] rpc request failed 5 times")
+					Log.Errorf("[NeoToRelay] rpc request failed 5 times")
 					break
 				}
 				continue
@@ -40,12 +39,12 @@ func (this *SyncService) NeoToRelay() {
 		for j := 0; j < 5; j++ {
 			response := this.neoSdk.GetBlockCount()
 			if response.HasError() {
-				log.Errorf("[NeoToRelay] neoSdk.GetBlockCount error: ", response.Error.Message)
+				Log.Errorf("[NeoToRelay] neoSdk.GetBlockCount error: ", response.Error.Message)
 				break
 			}
 			if response.Result == 0 {
 				if j == 4 {
-					log.Errorf("[NeoToRelay] rpc request failed 5 times")
+					Log.Errorf("[NeoToRelay] rpc request failed 5 times")
 					currentNeoHeight = this.relaySyncHeight // prevent infinite loop
 					break
 				}
@@ -56,7 +55,7 @@ func (this *SyncService) NeoToRelay() {
 		}
 		err := this.neoToRelay(this.relaySyncHeight, currentNeoHeight)
 		if err != nil {
-			log.Errorf("[NeoToRelay] neoToRelay error:", err)
+			Log.Errorf("[NeoToRelay] neoToRelay error:", err)
 		}
 		time.Sleep(time.Duration(this.config.ScanInterval) * time.Second)
 	}
@@ -64,7 +63,7 @@ func (this *SyncService) NeoToRelay() {
 
 func (this *SyncService) neoToRelay(m, n uint32) error {
 	for i := m; i < n; i++ {
-		log.Infof("[neoToRelay] start processing NEO block %d", this.relaySyncHeight)
+		Log.Infof("[neoToRelay] start processing NEO block %d", this.relaySyncHeight)
 		// request block from NEO, try rpc request 5 times, if failed, continue
 		for j := 0; j < 5; j++ {
 			response := this.neoSdk.GetBlock(strconv.Itoa(int(i)))
@@ -74,7 +73,7 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 			blk := response.Result
 			if blk.Hash == "" {
 				if j == 4 {
-					log.Errorf("[neoToRelay] rpc request failed 5 times")
+					Log.Errorf("[neoToRelay] rpc request failed 5 times")
 					break
 				}
 				continue
@@ -117,7 +116,7 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 										if index < len(notifications)-1 {
 											continue
 										}
-										log.Infof("This cross chain tx is not for this specific contract.")
+										Log.Infof("This cross chain tx is not for this specific contract.")
 										goto NEXT
 									} else {
 										break
@@ -141,13 +140,13 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 							} else {
 								passed = currentRelayChainSyncHeight
 							}
-							log.Infof("now process neo tx: " + tx.Hash)
+							Log.Infof("now process neo tx: " + tx.Hash)
 							err = this.syncProofToRelay(key, passed)
 							if err != nil {
-								log.Errorf("--------------------------------------------------")
-								log.Errorf("[neoToRelay] syncProofToRelay error: %s", err)
-								log.Errorf("neoHeight: %d, neoTxId: %s", i, tx.Hash)
-								log.Errorf("--------------------------------------------------")
+								Log.Errorf("--------------------------------------------------")
+								Log.Errorf("[neoToRelay] syncProofToRelay error: %s", err)
+								Log.Errorf("neoHeight: %d, neoTxId: %s", i, tx.Hash)
+								Log.Errorf("--------------------------------------------------")
 							}
 						}
 					NEXT:
@@ -158,14 +157,14 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 			// if block.nextConsensus is changed, sync key header of NEO,
 			// but should be done after all cross chain tx in this block are handled for verification purpose.
 			if blk.NextConsensus != this.neoNextConsensus {
-				log.Infof("[neoToRelay] Syncing Key blockHeader from NEO: %d", blk.Index)
+				Log.Infof("[neoToRelay] Syncing Key blockHeader from NEO: %d", blk.Index)
 				// Syncing key blockHeader to Relay Chain
 				err := this.syncHeaderToRelay(this.relaySyncHeight)
 				if err != nil {
-					log.Errorf("--------------------------------------------------")
-					log.Errorf("[neoToRelay] syncHeaderToRelay error: %s", err)
-					log.Errorf("height: %d", i)
-					log.Errorf("--------------------------------------------------")
+					Log.Errorf("--------------------------------------------------")
+					Log.Errorf("[neoToRelay] syncHeaderToRelay error: %s", err)
+					Log.Errorf("height: %d", i)
+					Log.Errorf("--------------------------------------------------")
 				}
 				this.neoNextConsensus = blk.NextConsensus
 			}
@@ -181,11 +180,11 @@ func (this *SyncService) NeoToRelayCheckAndRetry() {
 	for {
 		err := this.checkDoneTx()
 		if err != nil {
-			log.Errorf("[NeoToRelayCheckAndRetry] this.checkDoneTx error:%s", err)
+			Log.Errorf("[NeoToRelayCheckAndRetry] this.checkDoneTx error:%s", err)
 		}
 		err = this.retryTx()
 		if err != nil {
-			log.Errorf("[NeoToRelayCheckAndRetry] this.retryTx error:%s", err)
+			Log.Errorf("[NeoToRelayCheckAndRetry] this.retryTx error:%s", err)
 		}
 		time.Sleep(time.Duration(this.config.ScanInterval) * time.Second)
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/joeqian10/neo3-gogogo/mpt"
 	"github.com/polynetwork/neo3-relayer/common"
 	"github.com/polynetwork/neo3-relayer/db"
-	"github.com/polynetwork/neo3-relayer/log"
 	pCommon "github.com/polynetwork/poly/common"
 	hsCommon "github.com/polynetwork/poly/native/service/header_sync/common"
 	"github.com/polynetwork/poly/native/service/header_sync/neo"
@@ -61,7 +60,7 @@ func (this *SyncService) syncHeaderToRelay(height uint32) error {
 	buff := io.NewBufBinaryWriter()
 	blockHeader.Serialize(buff.BinaryWriter)
 	header := buff.Bytes()
-	log.Infof(helper.BytesToHex(header))
+	Log.Infof(helper.BytesToHex(header))
 
 	var txHash pCommon.Uint256
 	var txErr error
@@ -71,7 +70,7 @@ func (this *SyncService) syncHeaderToRelay(height uint32) error {
 	if txErr != nil {
 		return fmt.Errorf("[syncHeaderToRelay] relaySdk.SyncBlockHeader error: %s, neo header: %s", txErr, helper.BytesToHex(header))
 	}
-	log.Infof("[syncHeaderToRelay] txHash is: %s", txHash.ToHexString())
+	Log.Infof("[syncHeaderToRelay] txHash is: %s", txHash.ToHexString())
 	this.waitForRelayBlock()
 	return nil
 }
@@ -122,13 +121,13 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	buff := io.NewBufBinaryWriter()
 	stateRoot.Serialize(buff.BinaryWriter)
 	crossChainMsg := buff.Bytes()
-	//log.Infof("stateroot: %s", helper.BytesToHex(crossChainMsg))
+	//Log.Infof("stateroot: %s", helper.BytesToHex(crossChainMsg))
 
 	//msg := this.GetStateRootMsg(stateRoot)
-	//log.Infof("message: %s", helper.BytesToHex(msg))
+	//Log.Infof("message: %s", helper.BytesToHex(msg))
 	//
-	//log.Infof("invocation: %s", stateRoot.Witnesses[0].Invocation)
-	//log.Infof("verification: %s", stateRoot.Witnesses[0].Verification)
+	//Log.Infof("invocation: %s", stateRoot.Witnesses[0].Invocation)
+	//Log.Infof("verification: %s", stateRoot.Witnesses[0].Verification)
 
 	// get proof
 	res3 := this.neoSdk.GetProof(stateRoot.RootHash, this.config.NeoCCMC, crypto.Base64Encode(helper.HexToBytes(key)))
@@ -139,24 +138,24 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	if err != nil {
 		return fmt.Errorf("[syncProofToRelay] decode proof error: %s", err)
 	}
-	//log.Info("proof: %s", helper.BytesToHex(proof))
+	//Log.Info("proof: %s", helper.BytesToHex(proof))
 
 	// following for testing only
 	//id, k, proofs, err := mpt.ResolveProof(proof)
 	//root, _ := helper.UInt256FromString(stateRoot.RootHash)
 	//value, err := mpt.VerifyProof(root, id, k, proofs)
-	//log.Infof("value: %s", helper.BytesToHex(value))
+	//Log.Infof("value: %s", helper.BytesToHex(value))
 
 	//sending SyncProof transaction to Relay Chain
 	txHash, err := this.relaySdk.Native.Ccm.ImportOuterTransfer(this.config.NeoChainID, nil, height, proof, this.relayAccount.Address[:], crossChainMsg, this.relayAccount)
 	if err != nil {
 		if strings.Contains(err.Error(), "chooseUtxos, current utxo is not enough") {
-			log.Infof("[syncProofToRelay] invokeNativeContract error: %s", err)
+			Log.Infof("[syncProofToRelay] invokeNativeContract error: %s", err)
 			err = this.db.PutRetry(sink.Bytes())
 			if err != nil {
 				return fmt.Errorf("[syncProofToRelay] this.db.PutRetry error: %s", err)
 			}
-			log.Infof("[syncProofToRelay] put tx into retry db, height %d, key %s", height, key)
+			Log.Infof("[syncProofToRelay] put tx into retry db, height %d, key %s", height, key)
 			return nil
 		} else if strings.Contains(err.Error(), "checkDoneTx, tx already done") {
 			return fmt.Errorf("[syncProofToRelay] invokeNativeContract error: %s", err)
@@ -170,7 +169,7 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 		return fmt.Errorf("[syncProofToRelay] this.db.PutCheck error: %s", err)
 	}
 
-	log.Infof("[syncProofToRelay] polyTxHash is: %s", txHash.ToHexString())
+	Log.Infof("[syncProofToRelay] polyTxHash is: %s", txHash.ToHexString())
 	return nil
 }
 
@@ -215,7 +214,7 @@ func (this *SyncService) retrySyncProofToRelay(v []byte) error {
 	txHash, err := this.relaySdk.Native.Ccm.ImportOuterTransfer(this.config.NeoChainID, nil, retry.Height, proof, this.relayAccount.Address[:], crossChainMsg, this.relayAccount)
 	if err != nil {
 		if strings.Contains(err.Error(), "chooseUtxos, current utxo is not enough") {
-			log.Infof("[retrySyncProofToRelay] invokeNativeContract error: %s", err)
+			Log.Infof("[retrySyncProofToRelay] invokeNativeContract error: %s", err)
 			return nil
 		} else {
 			if err := this.db.DeleteRetry(v); err != nil {
@@ -234,14 +233,14 @@ func (this *SyncService) retrySyncProofToRelay(v []byte) error {
 		return fmt.Errorf("[retrySyncProofToRelay] this.db.DeleteRetry error: %s", err)
 	}
 
-	log.Infof("[retrySyncProofToRelay] syncProofToAlia txHash is :", txHash.ToHexString())
+	Log.Infof("[retrySyncProofToRelay] syncProofToAlia txHash is :", txHash.ToHexString())
 	return nil
 }
 
 func (this *SyncService) waitForRelayBlock() {
 	_, err := this.relaySdk.WaitForGenerateBlock(60*time.Second, 3)
 	if err != nil {
-		log.Errorf("[waitForRelayBlock] error: %s", err)
+		Log.Errorf("[waitForRelayBlock] error: %s", err)
 	}
 }
 
@@ -270,19 +269,19 @@ func (this *SyncService) checkDoneTx() error {
 			return fmt.Errorf("[checkDoneTx] this.aliaSdk.GetSmartContractEvent error: %s", err)
 		}
 		if event == nil {
-			log.Infof("[checkDoneTx] can not find event of hash %s", k)
+			Log.Infof("[checkDoneTx] can not find event of hash %s", k)
 			continue
 		}
 		if event.State != 1 {
-			log.Infof("[checkDoneTx] state of tx %s is not success", k)
+			Log.Infof("[checkDoneTx] state of tx %s is not success", k)
 			err := this.db.PutRetry(v)
 			if err != nil {
-				log.Errorf("[checkDoneTx] this.db.PutRetry error:%s", err)
+				Log.Errorf("[checkDoneTx] this.db.PutRetry error:%s", err)
 			}
 		}
 		err = this.db.DeleteCheck(k)
 		if err != nil {
-			log.Errorf("[checkDoneTx] this.db.DeleteCheck error:%s", err)
+			Log.Errorf("[checkDoneTx] this.db.DeleteCheck error:%s", err)
 		}
 	}
 
@@ -297,7 +296,7 @@ func (this *SyncService) retryTx() error {
 	for _, v := range retryList {
 		err = this.retrySyncProofToRelay(v)
 		if err != nil {
-			log.Errorf("[retryTx] this.retrySyncProofToRelay error:%s", err)
+			Log.Errorf("[retryTx] this.retrySyncProofToRelay error:%s", err)
 		}
 		time.Sleep(time.Duration(this.config.RetryInterval) * time.Second)
 	}

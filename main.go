@@ -24,6 +24,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+var Log = log.Log
+
 func setupApp() *cli.App {
 	app := cli.NewApp()
 	app.Usage = "NEO Relayer"
@@ -51,9 +53,6 @@ func main() {
 }
 
 func startSync(ctx *cli.Context) {
-	logLevel := ctx.GlobalInt(cmd.GetFlagName(cmd.LogLevelFlag))
-	log.InitLog(logLevel, log.PATH, log.Stdout)
-	//log.InitErrorCaseLogger(logLevel, log.ErrorCasePath, log.Stdout)
 	configPath := ctx.String(cmd.GetFlagName(cmd.ConfigPathFlag))
 	err := config.DefConfig.Init(configPath)
 	if err != nil {
@@ -74,7 +73,7 @@ func startSync(ctx *cli.Context) {
 	// Get wallet account from Relay Chain
 	account, ok := common.GetAccountByPassword(relaySdk, config.DefConfig.WalletFile, relayPwd)
 	if !ok {
-		log.Errorf("[NEO Relayer] common.GetAccountByPassword error")
+		Log.Errorf("[NEO Relayer] common.GetAccountByPassword error")
 		return
 	}
 
@@ -89,7 +88,7 @@ func startSync(ctx *cli.Context) {
 	}
 	w, err := wallet.NewNEP6Wallet(config.DefConfig.NeoWalletFile, &ps, nil, nil)
 	if err != nil {
-		log.Errorf("[NEO Relayer] Failed to open NEO wallet: %s", err)
+		Log.Errorf("[NEO Relayer] Failed to open NEO wallet: %s", err)
 		return
 	}
 
@@ -98,14 +97,14 @@ func startSync(ctx *cli.Context) {
 		fmt.Printf("Neo Wallet Password:")
 		pwd, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
-			log.Errorf("[NEO Relayer] Invalid password entered")
+			Log.Errorf("[NEO Relayer] Invalid password entered")
 		}
 		neoPwd = string(pwd)
 		fmt.Println()
 	}
 	err = w.Unlock(neoPwd)
 	if err != nil {
-		log.Errorf("[NEO Relayer] Failed to decrypt NEO account")
+		Log.Errorf("[NEO Relayer] Failed to decrypt NEO account")
 		return
 	}
 	wh := wallet.NewWalletHelperFromWallet(neoRpcClient, w)
@@ -126,7 +125,7 @@ func waitToExit() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
 		for sig := range sc {
-			log.Infof("Neo Relayer received exit signal: %v.", sig.String())
+			Log.Infof("Neo Relayer received exit signal: %v.", sig.String())
 			close(exit)
 			break
 		}
@@ -159,13 +158,3 @@ func SetUpPoly(poly *relaySdk.PolySdk, rpcAddr string) error {
 
 	return nil
 }
-
-//func SetUpPoly1(poly *relaySdk.PolySdk, rpcAddr string) error {
-//	poly.NewRpcClient().SetAddress(rpcAddr)
-//	hdr, err := poly.GetHeaderByHeight(0)
-//	if err != nil {
-//		return err
-//	}
-//	poly.SetChainId(hdr.ChainID)
-//	return nil
-//}
