@@ -37,10 +37,10 @@ const (
 )
 
 // GetCurrentNeoChainSyncHeight
-func (this *SyncService) GetCurrentNeoChainSyncHeight(relayChainID uint64) (uint64, error) {
+func (this *SyncService) GetCurrentNeoChainSyncHeight() (uint64, error) {
 	response := this.neoSdk.GetStorage(this.config.NeoCCMC, "AgE=")
 	if response.HasError() {
-		return 0, fmt.Errorf("[GetCurrentNeoChainSyncHeight] GetCurrentHeight error: %s", "Engine faulted! "+response.Error.Message)
+		return 0, fmt.Errorf("[GetCurrentNeoChainSyncHeight] GetStorage error: %s", response.GetErrorInfo())
 	}
 	var height uint64
 	s := response.Result
@@ -119,7 +119,6 @@ func (this *SyncService) changeBookKeeper(block *types.Block) error {
 			return fmt.Errorf("[changeBookKeeper] sort signatures error: %s", err)
 		}
 	}
-
 	cp3 := sc.ContractParameter{
 		Type:  sc.ByteArray,
 		Value: bs2,
@@ -127,7 +126,7 @@ func (this *SyncService) changeBookKeeper(block *types.Block) error {
 	Log.Infof("signature: %s", helper.BytesToHex(bs2))
 
 	// build script
-	scriptHash, err := helper.UInt160FromString(this.config.NeoCCMC) // hex string in little endian
+	scriptHash, err := helper.UInt160FromString(this.config.NeoCCMC) // "0x" prefixed hex string in big endian
 	if err != nil {
 		return fmt.Errorf("[changeBookKeeper] neo ccmc conversion error: %s", err)
 	}
@@ -138,6 +137,7 @@ func (this *SyncService) changeBookKeeper(block *types.Block) error {
 
 	Log.Infof("script: " + crypto.Base64Encode(script))
 
+	// make transaction
 	balancesGas, err := this.nwh.GetAccountAndBalance(tx.GasToken)
 	if err != nil {
 		return fmt.Errorf("[changeBookKeeper] WalletHelper.GetAccountAndBalance error: %s", err)
@@ -146,14 +146,15 @@ func (this *SyncService) changeBookKeeper(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("[changeBookKeeper] WalletHelper.MakeTransaction error: %s", err)
 	}
+
 	// sign transaction
 	trx, err = this.nwh.SignTransaction(trx, this.config.NeoMagic)
 	if err != nil {
 		return fmt.Errorf("[changeBookKeeper] WalletHelper.SignTransaction error: %s", err)
 	}
-
 	rawTxString := crypto.Base64Encode(trx.ToByteArray())
 	Log.Infof(rawTxString)
+
 	// send the raw transaction
 	response := this.neoSdk.SendRawTransaction(rawTxString)
 	if response.HasError() {
@@ -222,9 +223,12 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 		if err != nil {
 			return fmt.Errorf("[syncProofToNeo] DeserializeMerkleValue error: %s", err)
 		}
-		if helper.BytesToHex(toMerkleValue.TxParam.ToContract) != this.config.RtonContract {
-			Log.Infof(helper.BytesToHex(toMerkleValue.TxParam.ToContract))
-			Log.Infof("This cross chain tx is not for this specific contract.")
+
+		got := helper.UInt160FromBytes(toMerkleValue.TxParam.ToContract)
+		expected, _ := helper.UInt160FromString(this.config.RtonContract)
+		if !got.Equals(expected) {
+			Log.Infof("[syncProofToNeo] This cross chain tx is not for this specific contract.")
+			Log.Infof("toContract: 0x" + got.String())
 			return nil
 		}
 	}
@@ -385,7 +389,6 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	if err != nil {
 		return fmt.Errorf("[syncProofToNeo] WalletHelper.SignTransaction error: %s", err)
 	}
-
 	rawTxString := crypto.Base64Encode(trx.ToByteArray())
 	//Log.Infof("rawTxString: " + rawTxString)
 
@@ -654,7 +657,7 @@ func (this *SyncService) neoRetryTx() error {
 	}
 	for _, v := range retryList {
 		// get current neo chain sync height, which is the reliable header height
-		currentNeoChainSyncHeight, err := this.GetCurrentNeoChainSyncHeight(this.relaySdk.ChainId)
+		currentNeoChainSyncHeight, err := this.GetCurrentNeoChainSyncHeight()
 		if err != nil {
 			Log.Errorf("[neoRetryTx] GetCurrentNeoChainSyncHeight error: ", err)
 		}

@@ -39,7 +39,7 @@ func NewSyncService(acct *rsdk.Account, relaySdk *rsdk.PolySdk, neoAccount *wall
 	}
 	boltDB, err := db.NewBoltDB(config.DefConfig.DBPath)
 	if err != nil {
-		Log.Errorf("db.NewWaitingDB error:%s", err)
+		Log.Errorf("db.NewBoltDB error:%s", err)
 		os.Exit(1)
 	}
 	syncSvr := &SyncService{
@@ -59,8 +59,8 @@ func NewSyncService(acct *rsdk.Account, relaySdk *rsdk.PolySdk, neoAccount *wall
 func (this *SyncService) Run() {
 	go this.RelayToNeo()
 	go this.RelayToNeoCheckAndRetry()
-	//go this.NeoToRelay()
-	//go this.NeoToRelayCheckAndRetry()
+	go this.NeoToRelay()
+	go this.NeoToRelayCheckAndRetry()
 }
 
 func checkIfExist(dir string) bool {

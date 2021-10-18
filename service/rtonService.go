@@ -33,17 +33,7 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 			return fmt.Errorf("[relayToNeo] GetBlockByHeight error: %s", err)
 		}
 		txs := block.Transactions
-		// sync cross chain info
-		//events, err := this.relaySdk.GetSmartContractEventByBlock(i)
-		//if err != nil {
-		//	return fmt.Errorf("[relayToNeo] relaySdk.GetSmartContractEventByBlock error:%s", err)
-		//}
 		for _, tx := range txs {
-			//payer := tx.Payer.ToBase58()
-			//Log.Infof(payer)
-			//for _, s := range tx.SignedAddr {
-			//	Log.Infof(s.ToBase58())
-			//}
 			txHash := tx.Hash()
 			event, err := this.relaySdk.GetSmartContractEvent(txHash.ToHexString())
 			if err != nil {
@@ -63,7 +53,7 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 					if toChainID == this.config.NeoChainID {
 						key := states[5].(string)
 						// get current neo chain sync height, which is the reliable header height
-						currentNeoChainSyncHeight, err := this.GetCurrentNeoChainSyncHeight(this.relaySdk.ChainId)
+						currentNeoChainSyncHeight, err := this.GetCurrentNeoChainSyncHeight()
 						if err != nil {
 							Log.Errorf("[relayToNeo] GetCurrentNeoChainSyncHeight error: ", err)
 						}
@@ -82,13 +72,6 @@ func (this *SyncService) relayToNeo(m, n uint32) error {
 		if this.config.ChangeBookkeeper {
 			// sync key header, change book keeper
 			// but should be done after all cross chain tx in this block are handled for verification purpose.
-			block, err := this.relaySdk.GetBlockByHeight(i)
-			if err != nil {
-				return fmt.Errorf("[relayToNeo] GetBlockByHeight error: %s", err)
-			}
-
-			//blockHash := block.Header.Hash()
-			//Log.Infof("header hash: " + helper.BytesToHex(blockHash.ToArray()))
 
 			blkInfo := &vconfig.VbftBlockInfo{}
 			if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {

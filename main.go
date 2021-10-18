@@ -77,11 +77,10 @@ func startSync(ctx *cli.Context) {
 		return
 	}
 
-	// create an NEO RPC client
+	// create a NEO RPC client
 	neoRpcClient := rpc.NewClient(config.DefConfig.NeoJsonRpcUrl)
 
 	// open the NEO wallet
-	//neoAccount, err := wallet.NewAccountFromWIF(config.DefConfig.NeoWalletWIF)
 	ps := helper.ProtocolSettings{
 		Magic:          config.DefConfig.NeoMagic,
 		AddressVersion: helper.DefaultAddressVersion,
