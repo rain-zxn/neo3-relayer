@@ -32,6 +32,7 @@ type Config struct {
 	Neo2Wrapper       string
 	PolyStartHeight   uint32
 	NeoStartHeight    uint32
+	Bridge            []string
 }
 
 //Default config instance

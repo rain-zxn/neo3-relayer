@@ -4,6 +4,7 @@ import (
 	rpc2 "github.com/joeqian10/neo-gogogo/rpc"
 	"github.com/joeqian10/neo3-gogogo/rpc"
 	"github.com/joeqian10/neo3-gogogo/wallet"
+	"github.com/polynetwork/bridge-common/chains/bridge"
 	"github.com/polynetwork/neo3-relayer/config"
 	"github.com/polynetwork/neo3-relayer/db"
 	"github.com/polynetwork/neo3-relayer/log"
@@ -27,13 +28,14 @@ type SyncService struct {
 	neoStateRootHeight uint32
 
 	neo2Sdk *rpc2.RpcClient
+	bridge  *bridge.SDK
 
 	db     *db.BoltDB
 	config *config.Config
 }
 
 // NewSyncService ...
-func NewSyncService(acct *rsdk.Account, relaySdk *rsdk.PolySdk, neoAccount *wallet.WalletHelper, client *rpc.RpcClient, client2 *rpc2.RpcClient) *SyncService {
+func NewSyncService(acct *rsdk.Account, relaySdk *rsdk.PolySdk, neoAccount *wallet.WalletHelper, client *rpc.RpcClient, client2 *rpc2.RpcClient, bridgeSdk *bridge.SDK) *SyncService {
 	if !checkIfExist(config.DefConfig.DBPath) {
 		os.Mkdir(config.DefConfig.DBPath, os.ModePerm)
 	}
@@ -51,6 +53,7 @@ func NewSyncService(acct *rsdk.Account, relaySdk *rsdk.PolySdk, neoAccount *wall
 		neo2Sdk:            client2,
 		db:                 boltDB,
 		config:             config.DefConfig,
+		bridge:             bridgeSdk,
 	}
 	return syncSvr
 }

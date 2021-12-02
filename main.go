@@ -6,6 +6,7 @@ import (
 	"github.com/joeqian10/neo3-gogogo/helper"
 	"github.com/joeqian10/neo3-gogogo/rpc"
 	"github.com/joeqian10/neo3-gogogo/wallet"
+	"github.com/polynetwork/bridge-common/chains/bridge"
 	"github.com/polynetwork/poly/core/types"
 	"golang.org/x/crypto/ssh/terminal"
 	"os"
@@ -70,6 +71,12 @@ func startSync(ctx *cli.Context) {
 		panic(fmt.Errorf("failed to set up poly: %v", err))
 	}
 
+	// create bridge SDK Client
+	bridge, err := Bridge()
+	if err != nil {
+		panic(fmt.Errorf("failed to init bridge sdk: %v", err))
+	}
+
 	// Get wallet account from Relay Chain
 	account, ok := common.GetAccountByPassword(relaySdk, config.DefConfig.WalletFile, relayPwd)
 	if !ok {
@@ -112,10 +119,14 @@ func startSync(ctx *cli.Context) {
 	neo2RpcClient := rpc2.NewClient(config.DefConfig.Neo2RpcUrl)
 
 	//Start syncing
-	syncService := service.NewSyncService(account, relaySdk, wh, neoRpcClient, neo2RpcClient)
+	syncService := service.NewSyncService(account, relaySdk, wh, neoRpcClient, neo2RpcClient, bridge)
 	syncService.Run()
 
 	waitToExit()
+}
+
+func Bridge() (sdk *bridge.SDK, err error) {
+	return bridge.WithOptions(0, config.DefConfig.Bridge, time.Minute, 100)
 }
 
 func waitToExit() {
@@ -147,11 +158,11 @@ func SetUpPoly(poly *relaySdk.PolySdk, rpcAddr string) error {
 	}()
 
 	select {
-	case hdr := <- c1:
+	case hdr := <-c1:
 		poly.SetChainId(hdr.ChainID)
-	case err := <- c2:
-		return  err
-	case <- time.After(time.Second * 5):
+	case err := <-c2:
+		return err
+	case <-time.After(time.Second * 5):
 		return fmt.Errorf("poly rpc port timeout")
 	}
 
