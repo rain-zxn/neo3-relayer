@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	rpc2 "github.com/joeqian10/neo-gogogo/rpc"
 	"github.com/joeqian10/neo3-gogogo/helper"
 	"github.com/joeqian10/neo3-gogogo/rpc"
 	"github.com/joeqian10/neo3-gogogo/wallet"
@@ -115,11 +114,8 @@ func startSync(ctx *cli.Context) {
 	}
 	wh := wallet.NewWalletHelperFromWallet(neoRpcClient, w)
 
-	// add neo2 sdk
-	neo2RpcClient := rpc2.NewClient(config.DefConfig.Neo2RpcUrl)
-
 	//Start syncing
-	syncService := service.NewSyncService(account, relaySdk, wh, neoRpcClient, neo2RpcClient, bridge)
+	syncService := service.NewSyncService(account, relaySdk, wh, neoRpcClient, bridge)
 	syncService.Run()
 
 	waitToExit()

@@ -9,8 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/btcsuite/btcd/btcec"
-	helper2 "github.com/joeqian10/neo-gogogo/helper"
-	models2 "github.com/joeqian10/neo-gogogo/rpc/models"
 	"github.com/joeqian10/neo3-gogogo/crypto"
 	"github.com/joeqian10/neo3-gogogo/helper"
 	"github.com/joeqian10/neo3-gogogo/rpc/models"
@@ -560,18 +558,6 @@ func (this *SyncService) retrySyncProofToNeo(v []byte, lastSynced uint32) error 
 		return fmt.Errorf("[retrySyncProofToNeo] DeserializeMerkleValue error: %s", err)
 	}
 
-	// check if source hash app log includes wrapper contract
-	sourceTxHash := helper.UInt256FromBytes(toMerkleValue.TxParam.TxHash)
-	txId := sourceTxHash.String()
-	res := this.neo2Sdk.GetApplicationLog(txId)
-	if res.HasError() {
-		return fmt.Errorf("[retrySyncProofToNeo] this.neo2Sdk.GetApplicationLog error: %s", res.GetErrorInfo())
-	}
-	if !this.checkIsNeo2Wrapper(res.Result) {
-		Log.Infof("[retrySyncProofToNeo] this tx 0x%s is not from neo2 wrapper", txId)
-		return nil
-	}
-
 	polyHash := helper.BytesToHex(util.Reverse(toMerkleValue.TxHash))
 	srcHash := helper.BytesToHex(toMerkleValue.TxParam.TxHash)
 	Log.Infof("fromChainId: " + strconv.Itoa(int(toMerkleValue.FromChainID)))
@@ -833,23 +819,6 @@ func (this *SyncService) sortSignatures(sigs [][]byte, hash []byte) ([]byte, err
 		return nil, fmt.Errorf("[sortSignatures] getCurrentPolyBookKeeps error: %s", err)
 	}
 	return sortSignatures(this.relayPubKeys, sigs, hash)
-}
-
-func (this *SyncService) checkIsNeo2Wrapper(applicationLog models2.RpcApplicationLog) bool {
-	for _, execution := range applicationLog.Executions {
-		if execution.VMState == "FAULT" {
-			return false
-		}
-		notifications := execution.Notifications
-		for _, notification := range notifications {
-			u, _ := helper2.UInt160FromString(notification.Contract)
-			s := "0x" + u.String()
-			if s == this.config.Neo2Wrapper {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func sortSignatures(pubKeys, sigs [][]byte, hash []byte) ([]byte, error) {
