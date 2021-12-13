@@ -569,6 +569,11 @@ func (this *SyncService) retrySyncProofToNeo(v []byte, lastSynced uint32) error 
 	Log.Infof("method: " + helper.BytesToHex(toMerkleValue.TxParam.Method))
 	Log.Infof("TxParamArgs: " + helper.BytesToHex(toMerkleValue.TxParam.Args))
 
+	// limit the method to "unlock"
+	if helper.BytesToHex(toMerkleValue.TxParam.Method) != "756e6c6f636b" { // unlock
+		return fmt.Errorf("[syncProofToNeo] called method is invalid, height %d, key %s", txHeight, key)
+	}
+
 	check, err := CheckFee(this.bridge, toMerkleValue.FromChainID, srcHash, polyHash)
 	hasPaid := false
 	if check.Pass() {
