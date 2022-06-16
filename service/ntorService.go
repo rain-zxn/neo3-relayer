@@ -170,6 +170,8 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 									Log.Errorf("[neoToRelay] syncProofToRelay error: %s", err)
 									Log.Errorf("neoHeight: %d, neoTxId: %s", i, tx.Hash)
 									Log.Errorf("--------------------------------------------------")
+								} else {
+									Log.Infof("syncProofToRelay success tx: " + tx.Hash)
 								}
 							}
 						NEXT:
