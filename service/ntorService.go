@@ -94,63 +94,90 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 						continue
 					}
 					notifications := execution.Notifications
-					// this loop confirm tx is a cross chain tx
+
+					// filter lock proxy
+					isValidLockProxy := false
 					for _, notification := range execution.Notifications {
-						u, _ := helper.UInt160FromString(notification.Contract)
-						if "0x"+u.String() == this.config.NeoCCMC && notification.EventName == "CrossChainLockEvent" {
-							if notification.State.Type != "Array" {
-								return fmt.Errorf("[neoToRelay] notification.State.Type error: Type is not Array")
-							}
-							notification.State.Convert() // Type == "Array"
-							// convert to []InvokeStack
-							states := notification.State.Value.([]models.InvokeStack)
-							if len(states) != 5 {
-								return fmt.Errorf("[neoToRelay] notification.State.Value error: Wrong length of states")
-							}
-							// when empty, relay everything
-							if this.config.NtorContract != "" {
-								// this loop check it is for this specific contract
-								for index, ntf := range notifications {
-									v, _ := helper.UInt160FromString(ntf.Contract)
-									if "0x"+v.String() != this.config.NtorContract {
-										if index < len(notifications)-1 {
-											continue
-										}
-										Log.Infof("This cross chain tx is not for this specific contract.")
-										goto NEXT
-									} else {
-										break
-									}
-								}
-							}
-							key := states[3].Value.(string)       // base64 string for storeKey: 0102 + toChainId + toRequestId, like 01020501
-							temp, err := crypto.Base64Decode(key) // base64 encoded
-							if err != nil {
-								return fmt.Errorf("[neoToRelay] base64decode key error: %s", err)
-							}
-							key = helper.BytesToHex(temp)
-							//get relay chain sync height
-							currentRelayChainSyncHeight, err := this.GetCurrentRelayChainSyncHeight(this.config.NeoChainID)
-							if err != nil {
-								return fmt.Errorf("[neoToRelay] GetCurrentRelayChainSyncHeight error: %s", err)
-							}
-							var passed uint32
-							if i >= currentRelayChainSyncHeight {
-								passed = i
-							} else {
-								passed = currentRelayChainSyncHeight
-							}
-							Log.Infof("now process neo tx: " + tx.Hash)
-							err = this.syncProofToRelay(key, passed)
-							if err != nil {
-								Log.Errorf("--------------------------------------------------")
-								Log.Errorf("[neoToRelay] syncProofToRelay error: %s", err)
-								Log.Errorf("neoHeight: %d, neoTxId: %s", i, tx.Hash)
-								Log.Errorf("--------------------------------------------------")
+						u, err := helper.UInt160FromString(notification.Contract)
+						if err != nil {
+							Log.Errorf("[neoToRelay] UInt160FromString error: %s", err)
+							return fmt.Errorf("[neoToRelay] UInt160FromString error: %s", err)
+						}
+						if notification.EventName == "LockEvent" {
+							if "0x"+u.String() == this.config.NeoLockProxy {
+								isValidLockProxy = true
+								break
 							}
 						}
-					NEXT:
-					} // notification
+					}
+
+					if isValidLockProxy {
+						// this loop confirm tx is a cross chain tx
+						for _, notification := range execution.Notifications {
+							u, err := helper.UInt160FromString(notification.Contract)
+							if err != nil {
+								Log.Errorf("[neoToRelay] UInt160FromString error: %s", err)
+								return fmt.Errorf("[neoToRelay] UInt160FromString error: %s", err)
+							}
+
+							if "0x"+u.String() == this.config.NeoCCMC && notification.EventName == "CrossChainLockEvent" {
+								if notification.State.Type != "Array" {
+									return fmt.Errorf("[neoToRelay] notification.State.Type error: Type is not Array")
+								}
+								notification.State.Convert() // Type == "Array"
+								// convert to []InvokeStack
+								states := notification.State.Value.([]models.InvokeStack)
+								if len(states) != 5 {
+									return fmt.Errorf("[neoToRelay] notification.State.Value error: Wrong length of states")
+								}
+								// when empty, relay everything
+								if this.config.NtorContract != "" {
+									// this loop check it is for this specific contract
+									for index, ntf := range notifications {
+										v, _ := helper.UInt160FromString(ntf.Contract)
+										if "0x"+v.String() != this.config.NtorContract {
+											if index < len(notifications)-1 {
+												continue
+											}
+											Log.Infof("This cross chain tx is not for this specific contract.")
+											goto NEXT
+										} else {
+											break
+										}
+									}
+								}
+								key := states[3].Value.(string)       // base64 string for storeKey: 0102 + toChainId + toRequestId, like 01020501
+								temp, err := crypto.Base64Decode(key) // base64 encoded
+								if err != nil {
+									return fmt.Errorf("[neoToRelay] base64decode key error: %s", err)
+								}
+								key = helper.BytesToHex(temp)
+								//get relay chain sync height
+								currentRelayChainSyncHeight, err := this.GetCurrentRelayChainSyncHeight(this.config.NeoChainID)
+								if err != nil {
+									return fmt.Errorf("[neoToRelay] GetCurrentRelayChainSyncHeight error: %s", err)
+								}
+								var passed uint32
+								if i >= currentRelayChainSyncHeight {
+									passed = i
+								} else {
+									passed = currentRelayChainSyncHeight
+								}
+								Log.Infof("now process neo tx: " + tx.Hash)
+								err = this.syncProofToRelay(key, passed)
+								if err != nil {
+									Log.Errorf("--------------------------------------------------")
+									Log.Errorf("[neoToRelay] syncProofToRelay error: %s", err)
+									Log.Errorf("neoHeight: %d, neoTxId: %s", i, tx.Hash)
+									Log.Errorf("--------------------------------------------------")
+								}
+							}
+						NEXT:
+						} // notification
+					} else {
+						Log.Infof("This cross chain tx is not for this specific lock proxy contract. hash=%s", tx.Hash)
+					}
+
 				} // execution
 			}
 
