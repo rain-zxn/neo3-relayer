@@ -76,6 +76,7 @@ func (this *SyncService) syncHeaderToRelay(height uint32) error {
 
 //syncProofToRelay : send StateRoot Proof to Relay Chain
 func (this *SyncService) syncProofToRelay(key string, height uint32) error {
+	Log.Infof("syncProofToRelay key=%s, height=%d", key, height)
 	retry := &db.Retry{
 		Height: height,
 		Key:    key,
@@ -93,6 +94,7 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 		}
 		stateHeight = res.Result.ValidateRootIndex
 	}
+	Log.Infof("syncProofToRelay stateHeight=%d", stateHeight)
 
 	// get state root
 	srGot := false
@@ -103,6 +105,7 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	} else {
 		height2 = this.neoStateRootHeight
 	}
+	Log.Infof("syncProofToRelay height2=%d", height2)
 	for !srGot {
 		res2 := this.neoSdk.GetStateRoot(height2)
 		if res2.HasError() {
@@ -112,9 +115,11 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 		stateRoot = res2.Result
 		if len(stateRoot.Witnesses) == 0 { // no witness
 			height2++
+			Log.Infof("syncProofToRelay height2++=%d", height2)
 		} else {
 			srGot = true
 			this.neoStateRootHeight = height2 // next tx can start from this height to get state root
+			Log.Infof("syncProofToRelay this.neoStateRootHeight=%d", this.neoStateRootHeight)
 		}
 	}
 	buff := io.NewBufBinaryWriter()
