@@ -95,23 +95,31 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 					}
 					notifications := execution.Notifications
 
-					// filter lock proxy
+					// filter contract
 					isValidLockProxy := false
+					isValidWrapper := false
 					for _, notification := range execution.Notifications {
 						u, err := helper.UInt160FromString(notification.Contract)
 						if err != nil {
 							Log.Errorf("[neoToRelay] UInt160FromString error: %s", err)
 							return fmt.Errorf("[neoToRelay] UInt160FromString error: %s", err)
 						}
-						if notification.EventName == "LockEvent" {
+						if !isValidLockProxy && notification.EventName == "LockEvent" {
 							if "0x"+u.String() == this.config.NeoLockProxy {
 								isValidLockProxy = true
-								break
 							}
+						}
+						if !isValidWrapper && notification.EventName == "PolyWrapperLock" {
+							if "0x"+u.String() == this.config.NeoWrapper {
+								isValidWrapper = true
+							}
+						}
+						if isValidLockProxy && isValidWrapper {
+							break
 						}
 					}
 
-					if isValidLockProxy {
+					if isValidLockProxy && isValidWrapper {
 						// this loop confirm tx is a cross chain tx
 						for _, notification := range execution.Notifications {
 							u, err := helper.UInt160FromString(notification.Contract)
@@ -177,7 +185,7 @@ func (this *SyncService) neoToRelay(m, n uint32) error {
 						NEXT:
 						} // notification
 					} else {
-						Log.Infof("This cross chain tx is not for this specific lock proxy contract. hash=%s", tx.Hash)
+						Log.Infof("This cross chain tx is not for this specific lock proxy and wrapper contract. hash=%s", tx.Hash)
 					}
 
 				} // execution

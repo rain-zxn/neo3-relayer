@@ -23,6 +23,7 @@ type Config struct {
 	NeoChainID        uint64
 	NeoCCMC           string // big endian string, like 0x1234567812345678123456781234567812345678
 	NeoLockProxy      string
+	NeoWrapper        string
 	NtorContract      string
 	RtonContract      string
 	ScanInterval      uint64
