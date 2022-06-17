@@ -35,7 +35,7 @@ func (this *SyncService) NeoToRelay() {
 	}
 	for {
 		//get current Neo BlockHeight, 5 times rpc
-		var currentNeoHeight uint32
+		var lastNeoHeight, currentNeoHeight uint32
 		for j := 0; j < 5; j++ {
 			response := this.neoSdk.GetBlockCount()
 			if response.HasError() {
@@ -57,7 +57,12 @@ func (this *SyncService) NeoToRelay() {
 		if err != nil {
 			Log.Errorf("[NeoToRelay] neoToRelay error:", err)
 		}
-		time.Sleep(time.Duration(this.config.ScanInterval) * time.Second)
+
+		if lastNeoHeight == currentNeoHeight {
+			time.Sleep(time.Duration(this.config.ScanInterval) * time.Second)
+		} else {
+			lastNeoHeight = currentNeoHeight
+		}
 	}
 }
 

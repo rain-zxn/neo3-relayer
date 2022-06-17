@@ -11,6 +11,7 @@ import (
 // RelayToNeo sync headers from relay chain to neo
 func (this *SyncService) RelayToNeo() {
 	this.neoSyncHeight = this.config.PolyStartHeight
+	var lastRelayChainHeight uint32
 	for {
 		currentRelayChainHeight, err := this.relaySdk.GetCurrentBlockHeight()
 		if err != nil {
@@ -20,7 +21,13 @@ func (this *SyncService) RelayToNeo() {
 		if err != nil {
 			Log.Errorf("[RelayToNeo] relayToNeo error: ", err)
 		}
-		time.Sleep(time.Duration(this.config.ScanInterval) * time.Second)
+
+		if lastRelayChainHeight == currentRelayChainHeight {
+			time.Sleep(time.Duration(this.config.ScanInterval) * time.Second)
+		} else {
+			lastRelayChainHeight = currentRelayChainHeight
+		}
+
 	}
 }
 
