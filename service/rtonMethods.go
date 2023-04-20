@@ -34,6 +34,8 @@ const (
 	VERIFY_AND_EXECUTE_TX = "verifyAndExecuteTx"
 	CHANGE_BOOK_KEEPER    = "changeBookKeeper"
 	GET_BOOK_KEEPERS      = "getBookKeepers"
+	METHOD_UNLOCK         = "unlock"
+	METHOD_BRIDGEIN       = "bridgeIn"
 )
 
 // GetCurrentNeoChainSyncHeight
@@ -333,6 +335,7 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 
 	check, err := CheckFee(this.bridge, toMerkleValue.FromChainID, srcHash, polyHash)
 	hasPaid := false
+	needEstimate := false
 	if check.Pass() {
 		hasPaid = true
 		Log.Infof("CheckFee polyHash %s has paid.", polyHash)
@@ -341,9 +344,11 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	} else if check.Skip() {
 		Log.Warnf("Skipping poly for marked as not target in fee check. polyHash: %s", polyHash)
 		return nil
+	} else if check.PaidLimit() {
+		needEstimate = true
 	}
 
-	if !hasPaid {
+	if !hasPaid && !needEstimate {
 		Log.Infof("CheckFee polyHash %s not paid, put it into retry.", polyHash)
 		err = this.db.PutNeoRetry(v)
 		if err != nil {
@@ -374,8 +379,9 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	//	return nil
 	//}
 
-	// limit the method to "unlock"
-	if helper.BytesToHex(toMerkleValue.TxParam.Method) != "756e6c6f636b" { // unlock
+	// limit the method to "unlock" or "bridgeIn"
+	if helper.BytesToHex(toMerkleValue.TxParam.Method) != hex.EncodeToString([]byte(METHOD_UNLOCK)) &&
+		helper.BytesToHex(toMerkleValue.TxParam.Method) != hex.EncodeToString([]byte(METHOD_BRIDGEIN)) { // unlock
 		return fmt.Errorf("[syncProofToNeo] called method is invalid, height %d, key %s", txHeight, key)
 	}
 
@@ -414,7 +420,17 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 		}
 		return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
 	}
-
+	if needEstimate {
+		Log.Infof("[syncProofToNeo] estimate SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+		if trx.GetSystemFee()+trx.GetNetworkFee() > int64(check.PaidGas) {
+			Log.Infof("[syncProofToNeo] estimate low, SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+			err = this.db.PutNeoRetry(v)
+			if err != nil {
+				return fmt.Errorf("[syncProofToNeo] estimate this.db.PutNeoRetry error: %s", err)
+			}
+			return nil
+		}
+	}
 	// sign transaction
 	trx, err = this.nwh.SignTransaction(trx, this.config.NeoMagic)
 	if err != nil {
@@ -569,13 +585,16 @@ func (this *SyncService) retrySyncProofToNeo(v []byte, lastSynced uint32) error 
 	Log.Infof("method: " + helper.BytesToHex(toMerkleValue.TxParam.Method))
 	Log.Infof("TxParamArgs: " + helper.BytesToHex(toMerkleValue.TxParam.Args))
 
-	// limit the method to "unlock"
-	if helper.BytesToHex(toMerkleValue.TxParam.Method) != "756e6c6f636b" { // unlock
+	// limit the method to "unlock" or "bridgeIn"
+
+	if helper.BytesToHex(toMerkleValue.TxParam.Method) != hex.EncodeToString([]byte(METHOD_UNLOCK)) &&
+		helper.BytesToHex(toMerkleValue.TxParam.Method) != hex.EncodeToString([]byte(METHOD_BRIDGEIN)) {
 		return fmt.Errorf("[syncProofToNeo] called method is invalid, height %d, key %s", txHeight, key)
 	}
 
 	check, err := CheckFee(this.bridge, toMerkleValue.FromChainID, srcHash, polyHash)
 	hasPaid := false
+	needEstimate := false
 	if check.Pass() {
 		hasPaid = true
 		Log.Infof("CheckFee polyHash %s has paid.", polyHash)
@@ -588,9 +607,11 @@ func (this *SyncService) retrySyncProofToNeo(v []byte, lastSynced uint32) error 
 			return fmt.Errorf("[retrySyncProofToNeo] this.db.DeleteNeoRetry error: %s", err)
 		}
 		return nil
+	} else if check.PaidLimit() {
+		needEstimate = true
 	}
 
-	if !hasPaid {
+	if !hasPaid && !needEstimate {
 		return nil
 	}
 
@@ -612,7 +633,17 @@ func (this *SyncService) retrySyncProofToNeo(v []byte, lastSynced uint32) error 
 	if err != nil {
 		return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
 	}
-
+	if needEstimate {
+		Log.Infof("[syncProofToNeo] estimate SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+		if trx.GetSystemFee()+trx.GetNetworkFee() > int64(check.PaidGas) {
+			Log.Infof("[syncProofToNeo] estimate low, SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+			err = this.db.PutNeoRetry(v)
+			if err != nil {
+				return fmt.Errorf("[syncProofToNeo] estimate this.db.PutNeoRetry error: %s", err)
+			}
+			return nil
+		}
+	}
 	// sign transaction
 	trx, err = this.nwh.SignTransaction(trx, this.config.NeoMagic)
 	if err != nil {
