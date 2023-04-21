@@ -394,7 +394,7 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	if err != nil {
 		return fmt.Errorf("[syncProofToNeo] sc.MakeScript error: %s", err)
 	}
-	//Log.Infof("script: " + helper.BytesToHex(script))
+	Log.Infof("script: " + helper.BytesToHex(script))
 	balancesGas, err := this.nwh.GetAccountAndBalance(tx.GasToken)
 	if err != nil {
 		return fmt.Errorf("[syncProofToNeo] WalletHelper.GetAccountAndBalance error: %s", err)
