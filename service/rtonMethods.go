@@ -4,6 +4,7 @@ import (
 	"bytes"
 	goc "crypto"
 	"crypto/elliptic"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -408,29 +409,55 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	//retry.Serialization(sink)
 	//v := sink.Bytes()
 
-	trx, err := this.nwh.MakeTransaction(script, nil, []tx.ITransactionAttribute{}, balancesGas)
-	if err != nil {
-		if strings.Contains(err.Error(), "insufficient GAS") {
-			err = this.db.PutNeoRetry(v) // this tx is not ready thus will not cost extra gas, so put it into retry
-			if err != nil {
-				return fmt.Errorf("[syncProofToNeo] this.db.PutNeoRetry error: %s", err)
+	attributes := []tx.ITransactionAttribute{}
+
+	rb, err := helper.GenerateRandomBytes(4)
+	nonce := binary.LittleEndian.Uint32(rb)
+	trx := new(tx.Transaction)
+	// version
+	trx.SetVersion(0)
+	// nonce
+	trx.SetNonce(nonce)
+	// script
+	trx.SetScript(script)
+	// validUntilBlock
+	blockHeight, err := this.nwh.GetBlockHeight()
+
+	trx.SetValidUntilBlock(blockHeight + tx.MaxValidUntilBlockIncrement)
+	// signers
+	signers := getSigners(balancesGas[0].Account, nil)
+	trx.SetSigners(signers)
+	// attributes
+	trx.SetAttributes(attributes)
+	trx.SetNetworkFee(20000000)
+	trx.SetSystemFee(100000000)
+
+	/*
+		trx, err := this.nwh.MakeTransaction(script, nil, []tx.ITransactionAttribute{}, balancesGas)
+		if err != nil {
+			if strings.Contains(err.Error(), "insufficient GAS") {
+				err = this.db.PutNeoRetry(v) // this tx is not ready thus will not cost extra gas, so put it into retry
+				if err != nil {
+					return fmt.Errorf("[syncProofToNeo] this.db.PutNeoRetry error: %s", err)
+				}
+				Log.Infof("[syncProofToNeo] insufficient GAS, put tx into retry db, height %d, key %s, db key %s", txHeight, key, helper.BytesToHex(v))
+				return nil
 			}
-			Log.Infof("[syncProofToNeo] insufficient GAS, put tx into retry db, height %d, key %s, db key %s", txHeight, key, helper.BytesToHex(v))
-			return nil
+			return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
 		}
-		return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
-	}
-	if needEstimate {
-		Log.Infof("[syncProofToNeo] estimate SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
-		if trx.GetSystemFee()+trx.GetNetworkFee() > int64(check.PaidGas) {
-			Log.Infof("[syncProofToNeo] estimate low, SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
-			err = this.db.PutNeoRetry(v)
-			if err != nil {
-				return fmt.Errorf("[syncProofToNeo] estimate this.db.PutNeoRetry error: %s", err)
+		if needEstimate {
+			Log.Infof("[syncProofToNeo] estimate SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+			if trx.GetSystemFee()+trx.GetNetworkFee() > int64(check.PaidGas) {
+				Log.Infof("[syncProofToNeo] estimate low, SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+				err = this.db.PutNeoRetry(v)
+				if err != nil {
+					return fmt.Errorf("[syncProofToNeo] estimate this.db.PutNeoRetry error: %s", err)
+				}
+				return nil
 			}
-			return nil
 		}
-	}
+	*/
+
 	// sign transaction
 	trx, err = this.nwh.SignTransaction(trx, this.config.NeoMagic)
 	if err != nil {
@@ -463,6 +490,28 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	}
 
 	return nil
+}
+
+func getSigners(sender *helper.UInt160, cosigners []tx.Signer) []tx.Signer {
+	for i := 0; i < len(cosigners); i++ {
+		if cosigners[i].Account.Equals(sender) {
+			if i == 0 {
+				return cosigners
+			}
+			result := make([]tx.Signer, len(cosigners))
+			result[0] = cosigners[i]
+			if i == len(cosigners)-1 {
+				copy(result[1:], cosigners[0:i])
+				return result
+			} else {
+				copy(result[1:i+1], cosigners[0:i])
+				copy(result[i+1:], cosigners[i+1:])
+				return result
+			}
+		}
+	}
+	signer := tx.NewSigner(sender, tx.None)
+	return append([]tx.Signer{*signer}, cosigners...)
 }
 
 func (this *SyncService) retrySyncProofToNeo(v []byte, lastSynced uint32) error {
