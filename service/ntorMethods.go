@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/joeqian10/neo3-gogogo/block"
 	"github.com/joeqian10/neo3-gogogo/crypto"
@@ -151,6 +152,8 @@ func (this *SyncService) syncProofToRelay(key string, height uint32) error {
 	//Log.Infof("value: %s", helper.BytesToHex(value))
 
 	//sending SyncProof transaction to Relay Chain
+	fmt.Println("proof", hex.EncodeToString(proof))
+	fmt.Println("crossChainMsg", hex.EncodeToString(crossChainMsg))
 	txHash, err := this.relaySdk.Native.Ccm.ImportOuterTransfer(this.config.NeoChainID, nil, height, proof, this.relayAccount.Address[:], crossChainMsg, this.relayAccount)
 	if err != nil {
 		if strings.Contains(err.Error(), "chooseUtxos, current utxo is not enough") {
