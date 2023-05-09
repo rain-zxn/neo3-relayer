@@ -58,6 +58,7 @@ func NewSyncService(acct *rsdk.Account, relaySdk *rsdk.PolySdk, neoAccount *wall
 func (this *SyncService) Run() {
 	if config.DefConfig.Only == 1 {
 		this.RelayToNeo()
+	} else if config.DefConfig.Only == 2 {
 		this.NeoToRelay()
 	} else {
 		go this.RelayToNeo()
