@@ -4,7 +4,6 @@ import (
 	"bytes"
 	goc "crypto"
 	"crypto/elliptic"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -408,55 +407,55 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	//sink := common.NewZeroCopySink(nil)
 	//retry.Serialization(sink)
 	//v := sink.Bytes()
-
-	attributes := []tx.ITransactionAttribute{}
-
-	rb, err := helper.GenerateRandomBytes(4)
-	nonce := binary.LittleEndian.Uint32(rb)
-	trx := new(tx.Transaction)
-	// version
-	trx.SetVersion(0)
-	// nonce
-	trx.SetNonce(nonce)
-	// script
-	trx.SetScript(script)
-	// validUntilBlock
-	blockHeight, err := this.nwh.GetBlockHeight()
-
-	trx.SetValidUntilBlock(blockHeight + tx.MaxValidUntilBlockIncrement)
-	// signers
-	signers := getSigners(balancesGas[0].Account, nil)
-	trx.SetSigners(signers)
-	// attributes
-	trx.SetAttributes(attributes)
-	trx.SetNetworkFee(5000000)
-	trx.SetSystemFee(50000000)
-
 	/*
-		trx, err := this.nwh.MakeTransaction(script, nil, []tx.ITransactionAttribute{}, balancesGas)
-		if err != nil {
-			if strings.Contains(err.Error(), "insufficient GAS") {
-				err = this.db.PutNeoRetry(v) // this tx is not ready thus will not cost extra gas, so put it into retry
-				if err != nil {
-					return fmt.Errorf("[syncProofToNeo] this.db.PutNeoRetry error: %s", err)
-				}
-				Log.Infof("[syncProofToNeo] insufficient GAS, put tx into retry db, height %d, key %s, db key %s", txHeight, key, helper.BytesToHex(v))
-				return nil
-			}
-			return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
-		}
-		if needEstimate {
-			Log.Infof("[syncProofToNeo] estimate SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
-			if trx.GetSystemFee()+trx.GetNetworkFee() > int64(check.PaidGas) {
-				Log.Infof("[syncProofToNeo] estimate low, SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
-				err = this.db.PutNeoRetry(v)
-				if err != nil {
-					return fmt.Errorf("[syncProofToNeo] estimate this.db.PutNeoRetry error: %s", err)
-				}
-				return nil
-			}
-		}
+		attributes := []tx.ITransactionAttribute{}
+
+		rb, err := helper.GenerateRandomBytes(4)
+		nonce := binary.LittleEndian.Uint32(rb)
+		trx := new(tx.Transaction)
+		// version
+		trx.SetVersion(0)
+		// nonce
+		trx.SetNonce(nonce)
+		// script
+		trx.SetScript(script)
+		// validUntilBlock
+		blockHeight, err := this.nwh.GetBlockHeight()
+
+		trx.SetValidUntilBlock(blockHeight + tx.MaxValidUntilBlockIncrement)
+		// signers
+		signers := getSigners(balancesGas[0].Account, nil)
+		trx.SetSigners(signers)
+		// attributes
+		trx.SetAttributes(attributes)
+		trx.SetNetworkFee(5000000)
+		trx.SetSystemFee(50000000)
+
+
 	*/
+	trx, err := this.nwh.MakeTransaction(script, nil, []tx.ITransactionAttribute{}, balancesGas)
+	if err != nil {
+		if strings.Contains(err.Error(), "insufficient GAS") {
+			err = this.db.PutNeoRetry(v) // this tx is not ready thus will not cost extra gas, so put it into retry
+			if err != nil {
+				return fmt.Errorf("[syncProofToNeo] this.db.PutNeoRetry error: %s", err)
+			}
+			Log.Infof("[syncProofToNeo] insufficient GAS, put tx into retry db, height %d, key %s, db key %s", txHeight, key, helper.BytesToHex(v))
+			return nil
+		}
+		return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
+	}
+	if needEstimate {
+		Log.Infof("[syncProofToNeo] estimate SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+		if trx.GetSystemFee()+trx.GetNetworkFee() > int64(check.PaidGas) {
+			Log.Infof("[syncProofToNeo] estimate low, SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+			err = this.db.PutNeoRetry(v)
+			if err != nil {
+				return fmt.Errorf("[syncProofToNeo] estimate this.db.PutNeoRetry error: %s", err)
+			}
+			return nil
+		}
+	}
 
 	// sign transaction
 	trx, err = this.nwh.SignTransaction(trx, this.config.NeoMagic)
@@ -678,47 +677,47 @@ func (this *SyncService) retrySyncProofToNeo(v []byte, lastSynced uint32) error 
 	if err != nil {
 		return fmt.Errorf("[syncProofToNeo] WalletHelper.GetAccountAndBalance error: %s", err)
 	}
-
-	attributes := []tx.ITransactionAttribute{}
-
-	rb, err := helper.GenerateRandomBytes(4)
-	nonce := binary.LittleEndian.Uint32(rb)
-	trx := new(tx.Transaction)
-	// version
-	trx.SetVersion(0)
-	// nonce
-	trx.SetNonce(nonce)
-	// script
-	trx.SetScript(script)
-	// validUntilBlock
-	blockHeight, err := this.nwh.GetBlockHeight()
-
-	trx.SetValidUntilBlock(blockHeight + tx.MaxValidUntilBlockIncrement)
-	// signers
-	signers := getSigners(balancesGas[0].Account, nil)
-	trx.SetSigners(signers)
-	// attributes
-	trx.SetAttributes(attributes)
-	trx.SetNetworkFee(5000000)
-	trx.SetSystemFee(50000000)
-
 	/*
-		trx, err := this.nwh.MakeTransaction(script, nil, []tx.ITransactionAttribute{}, balancesGas)
-		if err != nil {
-			return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
-		}
-		if needEstimate {
-			Log.Infof("[syncProofToNeo] estimate SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
-			if trx.GetSystemFee()+trx.GetNetworkFee() > int64(check.PaidGas) {
-				Log.Infof("[syncProofToNeo] estimate low, SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
-				err = this.db.PutNeoRetry(v)
-				if err != nil {
-					return fmt.Errorf("[syncProofToNeo] estimate this.db.PutNeoRetry error: %s", err)
-				}
-				return nil
-			}
-		}
+		attributes := []tx.ITransactionAttribute{}
+
+		rb, err := helper.GenerateRandomBytes(4)
+		nonce := binary.LittleEndian.Uint32(rb)
+		trx := new(tx.Transaction)
+		// version
+		trx.SetVersion(0)
+		// nonce
+		trx.SetNonce(nonce)
+		// script
+		trx.SetScript(script)
+		// validUntilBlock
+		blockHeight, err := this.nwh.GetBlockHeight()
+
+		trx.SetValidUntilBlock(blockHeight + tx.MaxValidUntilBlockIncrement)
+		// signers
+		signers := getSigners(balancesGas[0].Account, nil)
+		trx.SetSigners(signers)
+		// attributes
+		trx.SetAttributes(attributes)
+		trx.SetNetworkFee(5000000)
+		trx.SetSystemFee(50000000)
+
 	*/
+
+	trx, err := this.nwh.MakeTransaction(script, nil, []tx.ITransactionAttribute{}, balancesGas)
+	if err != nil {
+		return fmt.Errorf("[syncProofToNeo] WalletHelper.MakeTransaction error: %s", err)
+	}
+	if needEstimate {
+		Log.Infof("[syncProofToNeo] estimate SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+		if trx.GetSystemFee()+trx.GetNetworkFee() > int64(check.PaidGas) {
+			Log.Infof("[syncProofToNeo] estimate low, SystemFee: %v, NetworkFee: %v, PaidGas: %v", trx.GetSystemFee(), trx.GetNetworkFee(), check.PaidGas)
+			err = this.db.PutNeoRetry(v)
+			if err != nil {
+				return fmt.Errorf("[syncProofToNeo] estimate this.db.PutNeoRetry error: %s", err)
+			}
+			return nil
+		}
+	}
 	// sign transaction
 	trx, err = this.nwh.SignTransaction(trx, this.config.NeoMagic)
 	if err != nil {
