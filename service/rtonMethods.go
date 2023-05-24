@@ -428,8 +428,8 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	trx.SetSigners(signers)
 	// attributes
 	trx.SetAttributes(attributes)
-	trx.SetNetworkFee(100000000)
-	trx.SetSystemFee(200000000)
+	trx.SetNetworkFee(10000000)
+	trx.SetSystemFee(50000000)
 
 	/*
 		trx, err := this.nwh.MakeTransaction(script, nil, []tx.ITransactionAttribute{}, balancesGas)
