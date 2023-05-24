@@ -32,6 +32,7 @@ type Config struct {
 	NeoStartHeight    uint32
 	Bridge            []string
 	Only              int
+	Estimate          int
 }
 
 //Default config instance

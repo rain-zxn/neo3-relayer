@@ -408,30 +408,8 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 	//sink := common.NewZeroCopySink(nil)
 	//retry.Serialization(sink)
 	//v := sink.Bytes()
-	attributes := []tx.ITransactionAttribute{}
 
-	rb, err := helper.GenerateRandomBytes(4)
-	nonce := binary.LittleEndian.Uint32(rb)
-	trx := new(tx.Transaction)
-	// version
-	trx.SetVersion(0)
-	// nonce
-	trx.SetNonce(nonce)
-	// script
-	trx.SetScript(script)
-	// validUntilBlock
-	blockHeight, err := this.nwh.GetBlockHeight()
-
-	trx.SetValidUntilBlock(blockHeight + tx.MaxValidUntilBlockIncrement)
-	// signers
-	signers := getSigners(balancesGas[0].Account, nil)
-	trx.SetSigners(signers)
-	// attributes
-	trx.SetAttributes(attributes)
-	trx.SetNetworkFee(10000000)
-	trx.SetSystemFee(50000000)
-
-	/*
+	if this.config.Estimate == 1 {
 		trx, err := this.nwh.MakeTransaction(script, nil, []tx.ITransactionAttribute{}, balancesGas)
 		if err != nil {
 			if strings.Contains(err.Error(), "insufficient GAS") {
@@ -455,8 +433,31 @@ func (this *SyncService) syncProofToNeo(key string, txHeight, lastSynced uint32)
 				return nil
 			}
 		}
+		return nil
+	}
 
-	*/
+	attributes := []tx.ITransactionAttribute{}
+
+	rb, _ := helper.GenerateRandomBytes(4)
+	nonce := binary.LittleEndian.Uint32(rb)
+	trx := new(tx.Transaction)
+	// version
+	trx.SetVersion(0)
+	// nonce
+	trx.SetNonce(nonce)
+	// script
+	trx.SetScript(script)
+	// validUntilBlock
+	blockHeight, _ := this.nwh.GetBlockHeight()
+
+	trx.SetValidUntilBlock(blockHeight + tx.MaxValidUntilBlockIncrement)
+	// signers
+	signers := getSigners(balancesGas[0].Account, nil)
+	trx.SetSigners(signers)
+	// attributes
+	trx.SetAttributes(attributes)
+	trx.SetNetworkFee(10000000)
+	trx.SetSystemFee(50000000)
 
 	// sign transaction
 	trx, err = this.nwh.SignTransaction(trx, this.config.NeoMagic)
