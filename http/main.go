@@ -81,7 +81,7 @@ func StartHttp(ctx *cli.Context) (err error) {
 	}
 	Log.Infof("start ....")
 	Log.Infof("listen %v:%v", host, port)
-	http.HandleFunc("/api/v1/composedsttx", controller.ComposeDstTx)
+	http.HandleFunc("/api/v1/composetx", controller.ComposeDstTx)
 	http.ListenAndServe(fmt.Sprintf("%v:%v", host, port), nil)
 	return
 }

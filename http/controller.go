@@ -39,8 +39,8 @@ type Controller struct {
 }
 
 type DstTx struct {
-	Data   interface{} `json:"data"`
-	DstCCM string      `json:"dst_ccm"`
+	Data   string `json:"data"`
+	DstCCM string `json:"dst_ccm"`
 }
 
 var controller *Controller
@@ -54,7 +54,7 @@ func (c *Controller) ComposeDstTx(w http.ResponseWriter, r *http.Request) {
 	Log.Infof("Composing dst tx poly_hash: %v", hash)
 	data, err := c.composeDstTx(hash)
 	dstTx := &DstTx{
-		Data:   data,
+		Data:   hex.EncodeToString(data),
 		DstCCM: config.DefConfig.NeoCCMC,
 	}
 	if err != nil {
@@ -71,7 +71,7 @@ func (c *Controller) ComposeDstTx(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c *Controller) composeDstTx(hash string) (data interface{}, err error) {
+func (c *Controller) composeDstTx(hash string) (data []byte, err error) {
 	txHeight, err := c.relaySdk.GetBlockHeightByTxHash(hash)
 	event, err := c.relaySdk.GetSmartContractEvent(hash)
 	if err != nil {
@@ -103,7 +103,7 @@ func (c *Controller) composeDstTx(hash string) (data interface{}, err error) {
 	return nil, fmt.Errorf("no tx")
 }
 
-func (c *Controller) getScript(key string, txHeight, lastSynced uint32) (interface{}, error) {
+func (c *Controller) getScript(key string, txHeight, lastSynced uint32) ([]byte, error) {
 	blockHeightReliable := lastSynced + 1
 	// get the proof of the cross chain tx
 	crossStateProof, err := c.relaySdk.ClientMgr.GetCrossStatesProof(txHeight, key)
