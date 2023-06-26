@@ -54,7 +54,7 @@ func (c *Controller) ComposeDstTx(w http.ResponseWriter, r *http.Request) {
 	Log.Infof("Composing dst tx poly_hash: %v", hash)
 	data, err := c.composeDstTx(hash)
 	dstTx := &DstTx{
-		Data:   hex.EncodeToString(data),
+		Data:   string(data),
 		DstCCM: config.DefConfig.NeoCCMC,
 	}
 	if err != nil {
@@ -232,7 +232,17 @@ func (c *Controller) getScript(key string, txHeight, lastSynced uint32) ([]byte,
 	if err != nil {
 		return nil, fmt.Errorf("[syncProofToNeo] neo ccmc conversion error: %s", err)
 	}
-	return sc.MakeScript(scriptHash, VERIFY_AND_EXECUTE_TX, []interface{}{txProof, txProofHeader, headerProof, currentHeader, signList})
+	type NeoInvoke struct {
+		ScriptHash string
+		Operation  string
+		Args       []interface{}
+	}
+	neoInvoke := &NeoInvoke{
+		scriptHash.String(),
+		VERIFY_AND_EXECUTE_TX,
+		[]interface{}{txProof, txProofHeader, headerProof, currentHeader, signList},
+	}
+	return json.Marshal(neoInvoke)
 }
 
 // sort signatures according to public key order, append sorted signatures together
