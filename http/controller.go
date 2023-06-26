@@ -114,10 +114,6 @@ func (c *Controller) getScript(key string, txHeight, lastSynced uint32) ([]byte,
 	if err != nil {
 		return nil, fmt.Errorf("[syncProofToNeo] DecodeString error: %s", err)
 	}
-	txProof := sc.ContractParameter{
-		Type:  sc.ByteArray,
-		Value: path,
-	}
 	//Log.Infof("txProof: " + helper.BytesToHex(path))
 
 	// get the next block header since it has the stateroot for the cross chain tx
@@ -125,10 +121,6 @@ func (c *Controller) getScript(key string, txHeight, lastSynced uint32) ([]byte,
 	headerToBeVerified, err := c.relaySdk.GetHeaderByHeight(blockHeightToBeVerified)
 	if err != nil {
 		return nil, fmt.Errorf("[syncProofToNeo] GetHeaderByHeight error: %s", err)
-	}
-	txProofHeader := sc.ContractParameter{
-		Type:  sc.ByteArray,
-		Value: headerToBeVerified.GetMessage(),
 	}
 
 	var headerProofBytes []byte
@@ -166,17 +158,8 @@ func (c *Controller) getScript(key string, txHeight, lastSynced uint32) ([]byte,
 		sigData = headerReliable.SigData
 		headerHash = headerReliable.Hash()
 	}
-
-	headerProof := sc.ContractParameter{
-		Type:  sc.ByteArray,
-		Value: headerProofBytes,
-	}
 	//Log.Infof("headerProof: " + helper.BytesToHex(headerProofBytes))
 
-	currentHeader := sc.ContractParameter{
-		Type:  sc.ByteArray,
-		Value: currentHeaderBytes,
-	}
 	//Log.Infof("currentHeader: " + helper.BytesToHex(currentHeaderBytes))
 	//Log.Infof("headerHash: 0x" + headerHash.ToHexString())
 
@@ -187,10 +170,6 @@ func (c *Controller) getScript(key string, txHeight, lastSynced uint32) ([]byte,
 	signListBytes, err = c.sortSignatures(sigData, digest)
 	if err != nil {
 		return nil, fmt.Errorf("[syncProofToNeo] sort signatures error: %s", err)
-	}
-	signList := sc.ContractParameter{
-		Type:  sc.ByteArray,
-		Value: signListBytes,
 	}
 	//Log.Infof("signList: " + helper.BytesToHex(signListBytes))
 
@@ -235,12 +214,12 @@ func (c *Controller) getScript(key string, txHeight, lastSynced uint32) ([]byte,
 	type NeoInvoke struct {
 		ScriptHash string
 		Operation  string
-		Args       []interface{}
+		Args       []string
 	}
 	neoInvoke := &NeoInvoke{
 		scriptHash.String(),
 		VERIFY_AND_EXECUTE_TX,
-		[]interface{}{txProof, txProofHeader, headerProof, currentHeader, signList},
+		[]string{helper.BytesToHex(path), helper.BytesToHex(headerToBeVerified.GetMessage()), helper.BytesToHex(headerProofBytes), helper.BytesToHex(currentHeaderBytes), helper.BytesToHex(signListBytes)},
 	}
 	return json.Marshal(neoInvoke)
 }
