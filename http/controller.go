@@ -212,9 +212,9 @@ func (c *Controller) getScript(key string, txHeight, lastSynced uint32) ([]byte,
 		return nil, fmt.Errorf("[syncProofToNeo] neo ccmc conversion error: %s", err)
 	}
 	type NeoInvoke struct {
-		ScriptHash string
-		Operation  string
-		Args       []string
+		ScriptHash string   `json:"scripthash"`
+		Operation  string   `json:"operation"`
+		Args       []string `json:"args"`
 	}
 	neoInvoke := &NeoInvoke{
 		scriptHash.String(),
